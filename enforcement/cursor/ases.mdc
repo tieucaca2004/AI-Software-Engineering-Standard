@@ -1,0 +1,14 @@
+---
+description: ASES mandatory engineering constitution for all work in this repository
+alwaysApply: true
+---
+
+# ASES Mandatory Rules
+
+Read the complete `CONSTITUTION.md` before performing any task. Also read project-specific approved decisions, scope, constraints and current milestone documents.
+
+If the Constitution or required project governance cannot be accessed, stop before implementation and report the blocker.
+
+Do not expand scope, change approved architecture or locked decisions, modify unrelated modules, alter production data, or replace critical dependencies without explicit Founder approval. Do not claim tests passed unless executed and evidenced. Do not self-approve milestones or officially integrate work before explicit Founder acceptance. Protect secrets, user/runtime data and Git history. Never force-push.
+
+At task completion, report files changed, tests executed and results, evidence, known issues, deviations and Git status.
