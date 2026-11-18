@@ -27,7 +27,8 @@ There is no installer, updater, network call or telemetry. Every change to a pro
 | **Project-owned, instructions** | `AGENTS.md`, `CLAUDE.md`, `.cursor/rules/*`, `.github/copilot-instructions.md`, any other project rule file | the project | **no** (never read, never modified) |
 
 Existing project-owned instruction files are never replaced. Integration is by adding a pointer (see
-`docs/PROJECT_ADOPTION.md`, section 3).
+`docs/PROJECT_ADOPTION.md`, section 4). The only authoritative Constitution in a project is
+`<snapshot_dir>/CONSTITUTION.md`; a second copy elsewhere is not supported.
 
 ## 3. The snapshot
 
@@ -101,8 +102,10 @@ file's SHA-256; unexpected entries in the snapshot; approval-record presence, st
 Exit codes: `0` pass, `1` verification failed, `2` usage error or unexpected error (integrity not established).
 Any non-zero code must be treated as failure. Nothing is repaired automatically.
 
-Other read-only subcommands: `lock` (prints a lock for a vendored snapshot), `manifest [--check]` (ASES source side),
-`diff --proposed DIR` (section 6).
+Other read-only subcommands: `lock` (prints a lock for a vendored snapshot; it **refuses** unless the referenced approval
+record exists, is well formed, says `Approved` and matches the snapshot version and manifest hash; `lock --manifest-sha256`
+prints just the manifest hash needed to fill the record), `manifest [--check]` (ASES source side), `diff --proposed DIR`
+(section 6; it refuses a proposed release whose `VERSION` file disagrees with its manifest).
 
 ## 6. Founder approval of a version change
 
@@ -111,9 +114,11 @@ Other read-only subcommands: `lock` (prints a lock for a vendored snapshot), `ma
    removed and changed files with text diffs. It refuses if the installed snapshot or the proposed release does
    not verify.
 3. The Founder reviews the diff and the changelog, and decides (Change Request per `templates/CHANGE_REQUEST.md`).
-4. Only after an explicit Founder decision, fill `templates/ASES_APPROVAL_RECORD.md` into the project (evidence
-   field = where the decision can be inspected).
-5. A person then replaces the snapshot, prints a new lock with `lock`, saves it, and runs `verify`.
+4. Only after an explicit Founder decision, fill `templates/ASES_APPROVAL_RECORD.md` into the project as a new
+   record (evidence field = where the decision can be inspected; `to_manifest_sha256` = the proposed manifest hash
+   printed by `diff`).
+5. A person then replaces the snapshot, prints a new lock with `lock` (it refuses without the matching approved
+   record), saves it, and runs `verify`.
 6. Rollback to an older version is a new transition with its own record.
 
 Nothing infers approval from a lock, a commit, a green `verify` or silence. `verify` cannot check that step 3
@@ -138,6 +143,6 @@ under the existing Release and Change Control rules (`docs/RELEASE_AND_CHANGE_CO
   `.github/copilot-instructions.md`) are project-owned and unverified; they can drift from the snapshot.
 - Tested on Python 3.12 only (Windows and WSL Ubuntu). Symbolic links are rejected on every version; Windows
   junction detection relies on `os.path.isjunction` (Python 3.12+). Junctions were not tested.
-- Tool loading behaviour (imports, rule discovery) can change; validate it as in `docs/PROJECT_ADOPTION.md` section 5.
+- Tool loading behaviour (imports, rule discovery) can change; validate it as in `docs/PROJECT_ADOPTION.md` section 6.
 - Not provided: installer/`apply`, automatic updates or watchers, signatures or key management, fleet
   management, telemetry. No project data ever goes back to ASES.

@@ -58,9 +58,10 @@ def make_project(base):
     base = Path(base)
     copy_release(base / SNAP)
     real = av.real_root(str(base))
+    manifest, manifest_sha = av.snapshot_manifest(real, SNAP)
+    put(base / RECORD, record_text(manifest_sha, manifest["ases_version"]))  # build_lock requires it first
     lock = av.build_lock(real, SNAP, av.DEFAULT_REPOSITORY, None, RECORD)
     put(base / LOCK, av.dump_json(lock))
-    put(base / RECORD, record_text(lock["manifest"]["sha256"], lock["ases_version"]))
     return base, lock
 
 
@@ -354,6 +355,65 @@ class ApprovalRecord(Base):
         self.assertFails("APPROVAL_RECORD_INVALID")
 
 
+class LockGeneration(Base):
+    def run_lock(self, *extra):
+        proc = subprocess.run([sys.executable, "-I", str(SCRIPT), "lock", "--project-root", str(self.project)]
+                              + list(extra), capture_output=True, text=True)
+        return proc.returncode, proc.stdout, proc.stderr
+
+    def rewrite(self, **overrides):
+        put(self.project / RECORD, record_text(self.lock["manifest"]["sha256"], self.lock["ases_version"],
+                                               **overrides))
+
+    def assertRefused(self, record=RECORD):
+        before = tree_state(self.project)
+        rc, out, err = self.run_lock("--approval-record", record)
+        self.assertEqual(rc, 1, out + err)
+        self.assertEqual(out, "", "a refused lock must print nothing to stdout")
+        self.assertIn("LOCK REFUSED", err)
+        self.assertEqual(before, tree_state(self.project), "lock generation must stay read-only")
+
+    def test_valid_record_prints_lock(self):
+        rc, out, err = self.run_lock("--approval-record", RECORD)
+        self.assertEqual(rc, 0, err)
+        self.assertEqual(json.loads(out), self.lock)
+
+    def test_refuses_missing_or_unsafe_record(self):
+        self.assertRefused("docs/governance/ases-approvals/nope.md")
+        self.assertRefused("../outside.md")
+        self.assertRefused(SNAP + "/CONSTITUTION.md")  # a managed file is not an approval record
+
+    def test_refuses_record_not_approved(self):
+        for decision in ("Pending", "Rejected", "Deferred"):
+            self.rewrite(founder_decision=decision)
+            self.assertRefused()
+
+    def test_refuses_record_not_matching_snapshot(self):
+        self.rewrite(to_manifest_sha256="1" * 64)
+        self.assertRefused()
+        self.rewrite(to_version="9.9.9")
+        self.assertRefused()
+
+    def test_refuses_malformed_or_template_record(self):
+        put(self.project / RECORD, "no front matter\n")
+        self.assertRefused()
+        shutil.copyfile(str(ROOT / "templates" / "ASES_APPROVAL_RECORD.md"), str(self.project / RECORD))
+        self.assertRefused()
+        self.rewrite(evidence="<fill in>")
+        self.assertRefused()
+
+    def test_record_must_be_given(self):
+        rc, out, err = self.run_lock()
+        self.assertEqual(rc, 2, out + err)
+
+    def test_manifest_sha256_helper(self):
+        before = tree_state(self.project)
+        rc, out, err = self.run_lock("--manifest-sha256")
+        self.assertEqual(rc, 0, err)
+        self.assertEqual(out, self.lock["manifest"]["sha256"] + "\n")
+        self.assertEqual(before, tree_state(self.project))
+
+
 class ReadOnlyAndOffline(Base):
     def add_instruction_files(self):
         files = {"AGENTS.md": "project agents rules\n", "CLAUDE.md": "project claude rules\r\n",
@@ -458,6 +518,24 @@ class DiffAndCli(Base):
         rc, out = cli("diff", "--project-root", self.project, "--proposed", self.proposed())
         self.assertEqual(rc, 1, out)
         self.assertIn("REFUSED", out)
+
+    def test_diff_refuses_proposed_version_file_vs_manifest_mismatch(self):
+        """File hashes are all valid, but VERSION disagrees with manifest.ases_version: fail closed."""
+        def tweak(p):
+            put(p / "VERSION", "9.9.9\n")
+        proposed = self.proposed(tweak)  # consistent: manifest says 9.9.9 and VERSION says 9.9.9
+        rc, out = cli("diff", "--project-root", self.project, "--proposed", proposed)
+        self.assertEqual(rc, 0, out)
+        manifest = proposed / av.MANIFEST_NAME
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        data["ases_version"] = "1.0.0"  # VERSION file still hashes correctly, but now disagrees
+        put(manifest, json.dumps(data, indent=2) + "\n")
+        self.assertEqual(av.check_snapshot(av.real_root(str(proposed)), data, False)[0], [])
+        rc, out = cli("diff", "--project-root", self.project, "--proposed", proposed)
+        self.assertEqual(rc, 1, out)
+        self.assertIn("REFUSED", out)
+        self.assertIn("[VERSION_MISMATCH] proposed VERSION", out)
+        self.assertNotIn("CHANGED", out)
 
     def test_usage_and_io_errors_fail_closed(self):
         self.assertEqual(cli()[0], 2)

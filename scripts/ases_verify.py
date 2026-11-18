@@ -4,7 +4,8 @@
 Subcommands (none of them ever writes a file; output goes to stdout):
   verify    Check an adopted project's ASES snapshot against its lock.
   diff      Show differences between the installed and a proposed ASES release.
-  lock      Print a lock document for an already-vendored snapshot.
+  lock      Print a lock for a vendored snapshot; refuses unless the referenced approval
+            record exists, is well formed, is Approved and matches the snapshot.
   manifest  Print (or --check) the manifest of an ASES source checkout.
 
 Exit codes: 0 = pass, 1 = verification failed, 2 = usage error or integrity
@@ -262,20 +263,64 @@ def parse_lock(data):
     return (None, errors) if errors else (lock, [])
 
 
-def build_lock(root_real, snapshot_dir, repository, commit, record):
+class LockRefused(Exception):
+    """The lock must not be generated (for example, no valid Founder-approved record)."""
+
+
+def snapshot_manifest(root_real, snapshot_dir):
+    """Return (manifest, canonical sha256) of the manifest vendored in snapshot_dir."""
     reason = unsafe_path_reason(snapshot_dir)
     if reason:
         raise ValueError("snapshot_dir: %s" % reason)
-    full = resolve_inside(root_real, snapshot_dir + "/" + MANIFEST_NAME)
-    data = read_bytes(full)
+    data = read_bytes(resolve_inside(root_real, snapshot_dir + "/" + MANIFEST_NAME))
     manifest, errors = parse_manifest(data)
     if errors:
         raise ValueError("vendored manifest invalid: " + "; ".join(errors))
+    return manifest, sha256_hex(canonical_text_bytes(data))
+
+
+def check_approval_record(root_real, record_rel, version, manifest_sha):
+    """Return (fields, errors). Fields are None unless the record is well formed, explicitly Approved
+    and matches the given snapshot version and manifest hash. Self-declared data: never proof."""
+    try:
+        full = resolve_inside(root_real, record_rel)
+        if not os.path.isfile(full):
+            raise PathProblem("approval record not found")
+        fields, errors = parse_approval_record(read_bytes(full))
+    except PathProblem as exc:
+        return None, [str(exc)]
+    if errors:
+        return None, errors
+    if fields["to_version"] != version:
+        errors.append("record to_version %s != snapshot/lock version %s" % (fields["to_version"], version))
+    if fields["to_manifest_sha256"] != manifest_sha:
+        errors.append("record to_manifest_sha256 does not match the snapshot manifest sha256")
+    return (None, errors) if errors else (fields, [])
+
+
+def check_version_file(base, manifest, subject):
+    """Finding if the VERSION file under base disagrees with manifest.ases_version (else None).
+    An unreadable/invalid VERSION is reported by check_snapshot, so it is not repeated here."""
+    try:
+        installed = canonical_text_bytes(read_bytes(resolve_inside(base, "VERSION"))).decode("utf-8").rstrip("\n")
+    except (OSError, ValueError, PathProblem):
+        return None
+    if installed != manifest["ases_version"]:
+        return Finding("VERSION_MISMATCH", subject, "VERSION file is %r but manifest says %s" % (
+            installed, manifest["ases_version"]))
+    return None
+
+
+def build_lock(root_real, snapshot_dir, repository, commit, record):
+    manifest, manifest_sha = snapshot_manifest(root_real, snapshot_dir)
+    _, errors = check_approval_record(root_real, record, manifest["ases_version"], manifest_sha)
+    if errors:
+        raise LockRefused("approval record %s is not acceptable: %s" % (record, "; ".join(errors)))
     lock = collections.OrderedDict([
         ("schema", LOCK_SCHEMA),
         ("ases_version", manifest["ases_version"]),
         ("snapshot_dir", snapshot_dir),
-        ("manifest", collections.OrderedDict([("sha256", sha256_hex(canonical_text_bytes(data)))])),
+        ("manifest", collections.OrderedDict([("sha256", manifest_sha)])),
         ("source", collections.OrderedDict([("repository", repository), ("commit", commit)])),
         ("approval", collections.OrderedDict([("record", record)])),
     ])
@@ -508,13 +553,9 @@ def verify_project(root_real, lock_rel, expect_version=None):
             expect_version, lock["ases_version"]))
     file_findings, ok = check_snapshot(base, manifest, True)
     findings.extend(file_findings)
-    try:
-        installed = canonical_text_bytes(read_bytes(resolve_inside(base, "VERSION"))).decode("utf-8").rstrip("\n")
-        if installed != manifest["ases_version"]:
-            add("VERSION_MISMATCH", snapshot + "/VERSION", "snapshot VERSION is %r but manifest says %s" % (
-                installed, manifest["ases_version"]))
-    except (OSError, ValueError, PathProblem):
-        pass  # already reported as missing/modified/invalid above
+    version_problem = check_version_file(base, manifest, snapshot + "/VERSION")
+    if version_problem:
+        findings.append(version_problem)
     if not file_findings:
         verified.append("%d managed file(s) match their manifest SHA-256 (%s); no unexpected files" % (
             ok, CANONICALIZATION))
@@ -522,18 +563,7 @@ def verify_project(root_real, lock_rel, expect_version=None):
         verified.append("ases_version %s agrees across lock, manifest and snapshot VERSION" % lock["ases_version"])
 
     record_rel = lock["approval"]["record"]
-    try:
-        record_full = resolve_inside(root_real, record_rel)
-        if not os.path.isfile(record_full):
-            raise PathProblem("approval record not found")
-        fields, errors = parse_approval_record(read_bytes(record_full))
-    except PathProblem as exc:
-        fields, errors = None, [str(exc)]
-    if not errors:
-        if fields["to_version"] != lock["ases_version"]:
-            errors.append("record to_version %s != lock %s" % (fields["to_version"], lock["ases_version"]))
-        if fields["to_manifest_sha256"] != lock["manifest"]["sha256"]:
-            errors.append("record to_manifest_sha256 does not match the lock manifest sha256")
+    fields, errors = check_approval_record(root_real, record_rel, lock["ases_version"], lock["manifest"]["sha256"])
     for message in errors:
         add("APPROVAL_RECORD_INVALID", record_rel, message)
     declared.append("source.repository: %s" % lock["source"]["repository"])
@@ -581,9 +611,23 @@ def cmd_verify(args):
 
 def cmd_lock(args):
     root = real_root(args.project_root)
+    if args.manifest_sha256:  # needed to fill the approval record; prints only the hash
+        sys.stdout.flush()
+        sys.stdout.buffer.write((snapshot_manifest(root, args.snapshot_dir)[1] + "\n").encode("ascii"))
+        sys.stdout.buffer.flush()
+        return EXIT_OK
+    if not args.approval_record:
+        raise ValueError("--approval-record is required (or use --manifest-sha256)")
     if args.source_commit is not None and not GITSHA.match(args.source_commit):
         raise ValueError("--source-commit must be 40 lowercase hex characters")
-    lock = build_lock(root, args.snapshot_dir, args.repository, args.source_commit, args.approval_record)
+    try:
+        lock = build_lock(root, args.snapshot_dir, args.repository, args.source_commit, args.approval_record)
+    except LockRefused as exc:
+        # stderr, so that a shell redirect does not put the message into the lock file
+        print("LOCK REFUSED: %s" % exc, file=sys.stderr)
+        print("Nothing was printed as a lock. If your shell created an empty lock file, delete it.",
+              file=sys.stderr)
+        return EXIT_FAIL
     sys.stdout.flush()
     sys.stdout.buffer.write(dump_json(lock))
     sys.stdout.buffer.flush()
@@ -631,6 +675,9 @@ def cmd_diff(args):
         print("REFUSED: proposed manifest invalid: " + "; ".join(errors))
         return EXIT_FAIL
     findings, _ = check_snapshot(proposed_root, proposed, False)
+    version_problem = check_version_file(proposed_root, proposed, "proposed VERSION")
+    if version_problem:
+        findings.append(version_problem)
     if findings:
         print("REFUSED: the proposed release does not match its own manifest.")
         print_findings(findings)
@@ -686,7 +733,9 @@ def build_parser():
     p.add_argument("--snapshot-dir", default=DEFAULT_SNAPSHOT_DIR)
     p.add_argument("--repository", default=DEFAULT_REPOSITORY)
     p.add_argument("--source-commit", help="40-hex ASES commit the snapshot was taken from (declared)")
-    p.add_argument("--approval-record", required=True, help="project-relative path of the approval record")
+    p.add_argument("--approval-record", help="project-relative path of an Approved, matching approval record")
+    p.add_argument("--manifest-sha256", action="store_true",
+                   help="print only the vendored manifest's canonical sha256 (for filling the approval record)")
     p.set_defaults(func=cmd_lock)
     p = sub.add_parser("manifest", help="print (or --check) the manifest of an ASES source checkout")
     p.add_argument("--source-root", default=".")
