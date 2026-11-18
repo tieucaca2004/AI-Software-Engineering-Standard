@@ -1,0 +1,64 @@
+{
+  "schema": "ases-manifest/1",
+  "ases_version": "1.0.0",
+  "canonicalization": "text-lf-v1",
+  "hash_algorithm": "sha256",
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "639dcfe29036bf0b117e8d48f1962c09715f3aef813524fff74631e7374cec31"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "49f23b84829942f69874259902a466c250a88d255e89164fb4659657c1e4951e"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "6afe8cf999189bf2c02ec68558bc5015b4d9279337a1bb32c21eecb7c86fe523"
+    },
+    {
+      "path": "CONSTITUTION.md",
+      "sha256": "bf3fef6fc8f6323d30d76f90b94c64851f3d03a99a7de9a097772191dc1d0982"
+    },
+    {
+      "path": "VERSION",
+      "sha256": "59854984853104df5c353e2f681a15fc7924742f9a2e468c29af248dce45ce03"
+    },
+    {
+      "path": "docs/ENFORCEMENT_MODEL.md",
+      "sha256": "99a7c2382352048de94fb72b85d1df5cfd12216b928398ad3b7084060c63a21d"
+    },
+    {
+      "path": "docs/PROJECT_ADOPTION.md",
+      "sha256": "4158eb1866b23a5408551eb49c66fd5c0acb0810a12d2e8a27034c5c68e51dfb"
+    },
+    {
+      "path": "docs/UAM.md",
+      "sha256": "9135187e96e111c7b841f2f280edd7d3eb87e861977db7d8833181290a16b1ce"
+    },
+    {
+      "path": "enforcement/copilot-instructions.md",
+      "sha256": "a73d9f7fcbab587f8d8d916c42a36fd3c2e4bbcafe2db9100c6841bc30f9e1cc"
+    },
+    {
+      "path": "enforcement/cursor/ases.mdc",
+      "sha256": "11212f6e2b3aecdccfeffb4f6f873315eb9d44912e785ac7bfbd7f9f74520003"
+    },
+    {
+      "path": "enforcement/generic/PROJECT_AI_INSTRUCTIONS.md",
+      "sha256": "1fb841165e0fe62016091cd68061482b73ad4ae5b99fe779264c797102b6ad27"
+    },
+    {
+      "path": "scripts/ases_verify.py",
+      "sha256": "8cfbca31586d7922435234bc7de982205bac32e3618766b5f3ac1a51b44f719f"
+    },
+    {
+      "path": "templates/ASES_APPROVAL_RECORD.md",
+      "sha256": "35fc7a3a589380b121d59b8bd80fae529b268301d7ebcc165afbb40f8fef98f8"
+    },
+    {
+      "path": "templates/CHANGE_REQUEST.md",
+      "sha256": "55e83be363f3e3070754e8d9c360ed4eb6009f22ef4e8a31954ddb734961013f"
+    }
+  ]
+}

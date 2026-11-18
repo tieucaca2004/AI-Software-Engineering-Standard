@@ -5,7 +5,7 @@ alwaysApply: true
 
 # ASES Mandatory Rules
 
-Read the complete `CONSTITUTION.md` before performing any task. Also read project-specific approved decisions, scope, constraints and current milestone documents.
+Read the complete ASES `CONSTITUTION.md` before performing any task (in an adopted project: `docs/governance/ases/CONSTITUTION.md`, or the `snapshot_dir` recorded in `docs/governance/ases.lock.json`). Also read project-specific approved decisions, scope, constraints and current milestone documents.
 
 If the Constitution or required project governance cannot be accessed, stop before implementation and report the blocker.
 

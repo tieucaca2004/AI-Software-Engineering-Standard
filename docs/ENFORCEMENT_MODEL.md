@@ -18,6 +18,8 @@ Tool support and instruction discovery can change. Verify the current tool's doc
 ### Layer B — Preflight
 Run `python scripts/ases_preflight.py --project-root .` at the start of a work session. It checks that required policy files exist and prints the required reading sequence. It does not prove that a model read or understood the content.
 
+In an adopted project, run `python docs/governance/ases/scripts/ases_verify.py verify --project-root .` instead. It verifies the pinned snapshot offline with SHA-256 (see `docs/UAM.md`). It proves integrity of the vendored files only; it does not prove approval or agent compliance.
+
 ### Layer C — CI
 The GitHub Actions workflow checks that the Constitution and core instruction files remain present and that the policy version is recorded. Configure the workflow as a required status check in branch protection/rulesets.
 

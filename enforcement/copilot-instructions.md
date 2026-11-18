@@ -1,6 +1,6 @@
 # ASES Mandatory Instructions
 
-Before working, read the complete `CONSTITUTION.md` and the target project's approved decisions, scope, constraints and current milestone.
+Before working, read the complete ASES `CONSTITUTION.md` (in an adopted project: `docs/governance/ases/CONSTITUTION.md`, or the `snapshot_dir` recorded in `docs/governance/ases.lock.json`) and the target project's approved decisions, scope, constraints and current milestone.
 
 If required governance documents are missing or inaccessible, stop before implementation and report the blocker.
 

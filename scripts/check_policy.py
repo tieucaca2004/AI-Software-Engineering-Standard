@@ -17,6 +17,11 @@ REQUIRED = [
     "templates/CHANGE_REQUEST.md",
     "docs/ENFORCEMENT_MODEL.md",
     "docs/PROJECT_ADOPTION.md",
+    "docs/UAM.md",
+    "ases-manifest.json",
+    "scripts/ases_verify.py",
+    "templates/ASES_APPROVAL_RECORD.md",
+    "tests/test_ases_verify.py",
 ]
 
 missing = [name for name in REQUIRED if not (ROOT / name).is_file()]

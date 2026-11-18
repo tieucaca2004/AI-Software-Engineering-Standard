@@ -14,7 +14,9 @@ Every AI coding session must load and follow the project's ASES instructions and
 - `CONSTITUTION.md` — canonical, complete constitution.
 - `enforcement/` — instructions for supported AI coding tools.
 - `templates/` — project adoption, milestone, change request and compliance templates.
-- `scripts/` — local preflight and repository policy checks.
+- `scripts/` — local preflight, repository policy checks and the offline snapshot verifier (`ases_verify.py`).
+- `ases-manifest.json` — hashes of the files that form the vendored ASES snapshot (see `docs/UAM.md`).
+- `tests/` — unit and CLI tests for the verifier.
 - `.github/workflows/` — CI validation of the policy files.
 - `docs/` — adoption, enforcement limits and operating procedure.
 
@@ -22,8 +24,8 @@ Every AI coding session must load and follow the project's ASES instructions and
 
 1. Read `CONSTITUTION.md`.
 2. Review `docs/ENFORCEMENT_MODEL.md` and `docs/PROJECT_ADOPTION.md`.
-3. Copy the appropriate instruction files into each project using the project adoption procedure.
-4. Run the preflight script before assigning implementation work.
+3. Vendor the pinned ASES snapshot into each project and connect its AI tools using the project adoption procedure (project-owned instruction files are never overwritten).
+4. Run `ases_verify.py verify` (adopted projects) or the preflight script (this repository) before assigning implementation work.
 5. Require a Milestone Completion Report and explicit Founder acceptance before official integration.
 
 ## Important limitation
