@@ -173,9 +173,12 @@ class Hashing(unittest.TestCase):
     def test_crlf_checkout_verifies(self):
         for rel in list(av.MANAGED_FILES) + [av.MANIFEST_NAME]:
             path = self.project_file(rel)
-            path.write_bytes(path.read_bytes().replace(b"\n", b"\r\n"))
+            # the source tree may already be CRLF (Windows autocrlf), so normalize first
+            path.write_bytes(path.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n"))
         rc, out = self.verify()
         self.assertEqual(rc, 0, out)
+        for rel in ("CONSTITUTION.md", av.MANIFEST_NAME):
+            self.assertIn(b"\r\n", self.project_file(rel).read_bytes())
 
     def test_bom_and_lone_cr_fail(self):
         target = self.project_file("CONSTITUTION.md")
