@@ -1,7 +1,8 @@
 # ASES Task Identity Contract — Final Unified Specification
 
-**Status:** Unified technical contract for Founder review. Identity Hash implementation is **not
-started**.
+**Status:** Founder-approved contract. Implementation lives in `scripts/ases_identity.py`;
+the record template is `templates/TASK_IDENTITY.json`; the gate accepts
+`ases_gate.py check --identity <file>`.
 **Owner:** Founder retains approval and release authority.
 
 This document is the single source of truth for the task-identity contract. It separates:
@@ -118,7 +119,10 @@ Any validation error stops before hashing.
 
 - `scripts/ases_gate.py` `IDENTITY_FIELDS` are **project** identity fields, unrelated to task
   identity.
-- The repository currently has no identity-hash implementation.
+- `scripts/ases_identity.py` implements validation, canonicalization and SHA-256 identity hash.
+- `templates/TASK_IDENTITY.json` is the machine-readable task-identity record template.
+- `ases_gate.py check --identity <file>` validates the record and reports its identity hash without
+  altering `CURRENT_TASK`.
 - `CONSTITUTION.md` is unchanged.
 - F1/F2 are unchanged.
 - The UAM MVP remains exactly five components.

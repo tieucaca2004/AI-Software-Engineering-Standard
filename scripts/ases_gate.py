@@ -15,6 +15,7 @@ import argparse
 import collections
 import datetime
 import fnmatch
+import json
 import os
 import re
 import sys
@@ -22,6 +23,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+import ases_identity  # noqa: E402
 import ases_verify as av  # noqa: E402
 
 DEFAULT_CONTEXT = "docs/governance/PROJECT_CONTEXT.md"
@@ -61,6 +63,7 @@ HINTS = {
     "TASK_CHANGED_FILES_MISSING": "Create the changed-files list or run without --changed-files before implementation.",
     "TASK_CHANGED_FILES_INVALID": "Changed-file paths must be project-relative, with no '..' or drive prefix.",
     "TASK_SCOPE_VIOLATION": "The changed path is outside Files/modules allowed. Stop or obtain a new task authorization.",
+    "IDENTITY_INVALID": "Fix or provide a valid task-identity record; see templates/TASK_IDENTITY.json and docs/IDENTITY_CONTRACT.md.",
 }
 
 REQUIRED_SECTIONS = (
@@ -469,6 +472,8 @@ def cmd_check(args):
     print("Project root: %s" % root)
     print("Context: %s" % args.context)
     print("Task: %s" % args.task)
+    if args.identity:
+        print("Identity: %s" % args.identity)
     if args.changed_files:
         print("Changed files: %s" % args.changed_files)
 
@@ -492,6 +497,22 @@ def cmd_check(args):
                                 args.task, str(exc)))
     else:
         task_values = check_task(task_text, identity, findings)
+
+    if args.identity:
+        try:
+            identity_path = av.resolve_inside(root, args.identity)
+            identity_text = av.canonical_text_bytes(av.read_bytes(identity_path)).decode("utf-8")
+            identity_record = json.loads(identity_text)
+            identity_hash = ases_identity.compute_identity_hash(identity_record)
+        except FileNotFoundError:
+            findings.append(Finding("IDENTITY_INVALID", args.identity, "identity record not found"))
+        except ases_identity.IdentityError as exc:
+            findings.append(Finding("IDENTITY_INVALID", args.identity, str(exc)))
+        except (av.PathProblem, OSError, ValueError) as exc:
+            findings.append(Finding("IDENTITY_INVALID", args.identity,
+                                    "cannot read identity record: %s" % exc))
+        else:
+            verified.append("Identity hash: %s" % identity_hash)
 
     if args.changed_files:
         changed_paths = load_changed_files(root, args.changed_files, findings)
@@ -532,6 +553,8 @@ def build_parser():
     check.add_argument("--lock", default=DEFAULT_LOCK)
     check.add_argument("--changed-files",
                        help="optional newline-separated changed-file list for scope enforcement")
+    check.add_argument("--identity",
+                       help="optional project-relative JSON task-identity record to validate and hash")
     check.set_defaults(func=cmd_check)
     return parser
 

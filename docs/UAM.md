@@ -55,10 +55,11 @@ The managed set is fixed and listed in `ases-manifest.json` (field `files`):
 `docs/RELEASE_AND_CHANGE_CONTROL.md`, `docs/UAM.md`,
 `enforcement/copilot-instructions.md`, `enforcement/cursor/ases.mdc`,
 `enforcement/generic/PROJECT_AI_INSTRUCTIONS.md`, `scripts/ases_gate.py`,
-`scripts/ases_verify.py`, `templates/APPROVED_DECISIONS.md`,
+`scripts/ases_identity.py`, `scripts/ases_verify.py`, `templates/APPROVED_DECISIONS.md`,
 `templates/ASES_APPROVAL_RECORD.md`, `templates/CHANGE_REQUEST.md`, `templates/CURRENT_TASK.md`,
 `templates/MILESTONE_COMPLETION_REPORT.md`, `templates/PROJECT_COMPLIANCE_PROFILE.md`,
-`templates/PROJECT_CONTEXT.md`, `templates/ases-governance.yml`. Relative paths are preserved
+`templates/PROJECT_CONTEXT.md`, `templates/TASK_IDENTITY.json`, `templates/ases-governance.yml`.
+Relative paths are preserved
 inside `snapshot_dir`, so relative references (such as `@CONSTITUTION.md` inside the snapshot's
 `CLAUDE.md`) keep working. `ases-manifest.json` is copied next to them but is not listed in itself.
 

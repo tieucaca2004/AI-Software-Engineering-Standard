@@ -42,7 +42,7 @@
     },
     {
       "path": "docs/UAM.md",
-      "sha256": "d3eb6e42901d7b205e9830376a057f2e193dafffb4391b98a2ffb781b5a27245"
+      "sha256": "dd90a0a5b5a9a86cf4cee880a59a69758a3d0dfb76a28281655ca9e1a1c811eb"
     },
     {
       "path": "enforcement/copilot-instructions.md",
@@ -58,11 +58,15 @@
     },
     {
       "path": "scripts/ases_gate.py",
-      "sha256": "7306ebae35f67a4ad9c15faa1bbf737698dc759f0cc541f60e13ae1cee109ed5"
+      "sha256": "f8388751565e9d0c560a35679a02dad484bd18fbd1194ef265295bd3272295ef"
+    },
+    {
+      "path": "scripts/ases_identity.py",
+      "sha256": "965a618f6d339a75eb7e407db39b94ded91ad71d9c507676f78f248fe7ad4e56"
     },
     {
       "path": "scripts/ases_verify.py",
-      "sha256": "63a137fac6442306bbc222b78120f4a8ad7ac8770e5a82723afbee95109b2a81"
+      "sha256": "e2bc0672e2464206ffc80125939f9d5980f4fc326960236a84bca8dd093f0398"
     },
     {
       "path": "templates/APPROVED_DECISIONS.md",
@@ -91,6 +95,10 @@
     {
       "path": "templates/PROJECT_CONTEXT.md",
       "sha256": "4840c584f103e581626835fc40f666e839704bd75a7186020b0aef3429600c6d"
+    },
+    {
+      "path": "templates/TASK_IDENTITY.json",
+      "sha256": "8a6ca5d9737efb0e722c73345b47ff1638a9197ac8318a3e9e7dc0cfd752eeb6"
     },
     {
       "path": "templates/ases-governance.yml",

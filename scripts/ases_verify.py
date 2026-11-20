@@ -53,6 +53,7 @@ MANAGED_FILES = (
     "enforcement/cursor/ases.mdc",
     "enforcement/generic/PROJECT_AI_INSTRUCTIONS.md",
     "scripts/ases_gate.py",
+    "scripts/ases_identity.py",
     "scripts/ases_verify.py",
     "templates/APPROVED_DECISIONS.md",
     "templates/ASES_APPROVAL_RECORD.md",
@@ -61,6 +62,7 @@ MANAGED_FILES = (
     "templates/MILESTONE_COMPLETION_REPORT.md",
     "templates/PROJECT_COMPLIANCE_PROFILE.md",
     "templates/PROJECT_CONTEXT.md",
+    "templates/TASK_IDENTITY.json",
     "templates/ases-governance.yml",
 )
 REQUIRED_IN_MANIFEST = ("CONSTITUTION.md", "VERSION")
