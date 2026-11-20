@@ -14,6 +14,7 @@ Exit codes: 0 = pass, 1 = blocked, 2 = usage error or the check could not run.
 import argparse
 import collections
 import datetime
+import fnmatch
 import os
 import re
 import sys
@@ -57,6 +58,9 @@ HINTS = {
     "TASK_NOT_AUTHORIZED": "Only Status: Authorized permits implementation. Do not self-authorize.",
     "TASK_PROJECT_MISMATCH": "The task must name the same project as the project context.",
     "TASK_PLACEHOLDER": "Replace every task placeholder before implementation.",
+    "TASK_CHANGED_FILES_MISSING": "Create the changed-files list or run without --changed-files before implementation.",
+    "TASK_CHANGED_FILES_INVALID": "Changed-file paths must be project-relative, with no '..' or drive prefix.",
+    "TASK_SCOPE_VIOLATION": "The changed path is outside Files/modules allowed. Stop or obtain a new task authorization.",
 }
 
 REQUIRED_SECTIONS = (
@@ -352,6 +356,54 @@ def check_task(text, context_identity, findings):
     if allowed.lower() in {"none", "n/a", "-"}:
         findings.append(Finding("TASK_FIELD_INVALID", "Files/modules allowed",
                                 "list the authorized files or modules, or 'all' for an explicitly repo-wide task"))
+    return values
+
+
+def load_changed_files(root_real, rel, findings):
+    """Read a newline-separated changed-file list. Return None when it cannot be used."""
+    try:
+        text = read_text(root_real, rel)
+    except FileNotFoundError:
+        findings.append(Finding("TASK_CHANGED_FILES_MISSING", rel, "changed-files list not found"))
+        return None
+    except (av.PathProblem, OSError, ValueError) as exc:
+        findings.append(Finding("TASK_CHANGED_FILES_INVALID", rel, str(exc)))
+        return None
+    paths = []
+    for line in text.split("\n"):
+        path = line.strip().replace("\\", "/")
+        if not path or path.startswith("#"):
+            continue
+        parts = path.split("/")
+        if (path.startswith("/") or re.match(r"^[A-Za-z]:", path)
+                or any(part in ("", ".", "..") for part in parts)
+                or any(ord(ch) < 32 for ch in path)):
+            findings.append(Finding("TASK_CHANGED_FILES_INVALID", path,
+                                    "changed-file path is absolute, empty, '.', '..' or contains control characters"))
+            continue
+        paths.append(path)
+    return paths
+
+
+def check_scope(changed_paths, allowed_value, findings):
+    """Enforce Files/modules allowed with case-sensitive fnmatch patterns."""
+    patterns = [part.strip().replace("\\", "/")
+                for part in re.split(r"[,;\n]", allowed_value) if part.strip()]
+    if not patterns:
+        findings.append(Finding("TASK_FIELD_INVALID", "Files/modules allowed",
+                                "cannot enforce scope without at least one path or pattern"))
+        return
+    if any(pattern.lower() == "all" for pattern in patterns):
+        return
+    for pattern in patterns:
+        if (pattern.startswith("/") or re.match(r"^[A-Za-z]:", pattern)
+                or ".." in pattern.split("/")):
+            findings.append(Finding("TASK_FIELD_INVALID", "Files/modules allowed",
+                                    "allowed pattern %r is absolute or contains '..'" % pattern))
+    for path in changed_paths:
+        if not any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns):
+            findings.append(Finding("TASK_SCOPE_VIOLATION", path,
+                                    "changed path is not covered by Files/modules allowed"))
 
 
 def check_snapshot(root_real, lock_rel, findings, verified):
@@ -399,6 +451,8 @@ def cmd_check(args):
     print("Project root: %s" % root)
     print("Context: %s" % args.context)
     print("Task: %s" % args.task)
+    if args.changed_files:
+        print("Changed files: %s" % args.changed_files)
 
     findings, verified = [], []
     check_snapshot(root, args.lock, findings, verified)
@@ -412,13 +466,23 @@ def cmd_check(args):
     else:
         identity = check_context(context_text, findings)
 
+    task_values = None
     try:
         task_text = read_text(root, args.task)
     except (FileNotFoundError, av.PathProblem, OSError, ValueError) as exc:
         findings.append(Finding("TASK_MISSING" if isinstance(exc, FileNotFoundError) else "TASK_INVALID",
                                 args.task, str(exc)))
     else:
-        check_task(task_text, identity, findings)
+        task_values = check_task(task_text, identity, findings)
+
+    if args.changed_files:
+        changed_paths = load_changed_files(root, args.changed_files, findings)
+        if changed_paths is not None:
+            if task_values is None:
+                findings.append(Finding("TASK_CHANGED_FILES_INVALID", args.changed_files,
+                                        "cannot check scope without a readable task record"))
+            else:
+                check_scope(changed_paths, task_values.get("Files/modules allowed", ""), findings)
 
     if verified:
         print("VERIFIED:")
@@ -448,6 +512,8 @@ def build_parser():
     check.add_argument("--context", default=DEFAULT_CONTEXT)
     check.add_argument("--task", default=DEFAULT_TASK)
     check.add_argument("--lock", default=DEFAULT_LOCK)
+    check.add_argument("--changed-files",
+                       help="optional newline-separated changed-file list for scope enforcement")
     check.set_defaults(func=cmd_check)
     return parser
 

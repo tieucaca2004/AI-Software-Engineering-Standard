@@ -139,6 +139,9 @@ Before implementation starts, create these project-owned records from the snapsh
      not create or widen its own task authorization.
    - `Status` must be exactly `Authorized`. List allowed files/modules, prohibited actions, testing
      requirements, acceptance criteria and the authorization evidence reference.
+   - `Files/modules allowed` is a comma-separated list of project-relative paths or globs, or `all`
+     only for an explicitly repo-wide task. CI passes `--changed-files` so every changed path must
+     match; an out-of-scope change blocks the gate.
 3. `docs/governance/APPROVED_DECISIONS.md` from `templates/APPROVED_DECISIONS.md`.
 4. `docs/governance/PROJECT_COMPLIANCE_PROFILE.md` from `templates/PROJECT_COMPLIANCE_PROFILE.md`.
 
@@ -152,18 +155,23 @@ Copy `docs/governance/ases/templates/ases-governance.yml` to
 
 ```
 python docs/governance/ases/scripts/ases_verify.py verify --project-root .
-python docs/governance/ases/scripts/ases_gate.py check --project-root . --task docs/governance/CURRENT_TASK.md
+git -c core.quotePath=false diff --name-only origin/<base>...HEAD > changed-files.txt
+python docs/governance/ases/scripts/ases_gate.py check --project-root . \
+  --task docs/governance/CURRENT_TASK.md --changed-files changed-files.txt
 ```
 
-Configure the `ASES governance gate` job as a required status check in the protected-branch ruleset.
-If the project uses a non-default `snapshot_dir`, adjust the workflow paths. Do not weaken the
-workflow to make a failing gate pass.
+The workflow checks out full history so the diff against the base branch is available. On a push
+without a usable previous commit, it runs the gate without the changed-files scope check. Configure
+the `ASES governance gate` job as a required status check in the protected-branch ruleset. If the
+project uses a non-default `snapshot_dir`, adjust the workflow paths. Do not weaken the workflow to
+make a failing gate pass.
 
 ## 7. Validate
 
 - Run the gate:
   `python docs/governance/ases/scripts/ases_gate.py check --project-root . --task docs/governance/CURRENT_TASK.md`
-  (offline; exit 0 required).
+  (offline; exit 0 required). In CI, add `--changed-files changed-files.txt` to enforce the task's
+  allowed paths as well.
 - Run the snapshot verifier: `python docs/governance/ases/scripts/ases_verify.py verify --project-root .`.
 - Confirm each AI tool loads the expected instruction file.
 - Start a new session and ask the agent to identify the Constitution version, Project Context,

@@ -20,7 +20,8 @@ reviewed; a document that merely says a gate passed is not evidence.
 
 ## Non-negotiable gate rules
 
-1. Do not start G4 without a complete Project Context and an `Authorized` task record.
+1. Do not start G4 without a complete Project Context and an `Authorized` task record. When a
+   changed-file list is supplied, every changed path must match the task's allowed paths.
 2. Do not skip a gate because the project is small. Scale the artifacts, not the decision.
 3. Do not mark G5 passed without executing the required tests. Skipped tests are not passed.
 4. Do not mark G6 accepted without an explicit Founder decision. Silence, a green CI run or a commit is not acceptance.

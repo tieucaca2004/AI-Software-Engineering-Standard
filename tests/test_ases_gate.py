@@ -302,6 +302,57 @@ class TaskChecks(GateBase):
         self.assertEqual(self.gate()[0], 0)
 
 
+class ScopeChecks(GateBase):
+    def changed(self, *paths):
+        put(self.project / "changed-files.txt", "\n".join(paths) + "\n")
+        return "changed-files.txt"
+
+    def test_scope_accepts_allowed_file(self):
+        rc, out = self.gate("--changed-files", self.changed("src/sample.py"))
+        self.assertEqual(rc, 0, out)
+
+    def test_scope_blocks_unlisted_file(self):
+        out = self.assertBlocked("TASK_SCOPE_VIOLATION",
+                                 "--changed-files", self.changed("src/other.py"))
+        self.assertIn("src/other.py", out)
+
+    def test_scope_accepts_glob(self):
+        self.replace(TASK, "Files/modules allowed: src/sample.py",
+                     "Files/modules allowed: src/*.py")
+        rc, out = self.gate("--changed-files", self.changed("src/sample.py"))
+        self.assertEqual(rc, 0, out)
+
+    def test_scope_accepts_comma_separated_patterns(self):
+        self.replace(TASK, "Files/modules allowed: src/sample.py",
+                     "Files/modules allowed: docs/**, src/*.py")
+        rc, out = self.gate("--changed-files", self.changed("src/sample.py"))
+        self.assertEqual(rc, 0, out)
+
+    def test_scope_rejects_unsafe_allowed_pattern(self):
+        self.replace(TASK, "Files/modules allowed: src/sample.py",
+                     "Files/modules allowed: ../outside.py")
+        self.assertBlocked("TASK_FIELD_INVALID",
+                           "--changed-files", self.changed("src/sample.py"))
+
+    def test_scope_accepts_explicit_all(self):
+        self.replace(TASK, "Files/modules allowed: src/sample.py",
+                     "Files/modules allowed: all")
+        rc, out = self.gate("--changed-files", self.changed("docs/readme.md"))
+        self.assertEqual(rc, 0, out)
+
+    def test_scope_rejects_traversal(self):
+        self.assertBlocked("TASK_CHANGED_FILES_INVALID",
+                           "--changed-files", self.changed("../outside.py"))
+
+    def test_scope_missing_changed_file(self):
+        self.assertBlocked("TASK_CHANGED_FILES_MISSING",
+                           "--changed-files", "missing.txt")
+
+    def test_scope_blocks_task_record_change(self):
+        self.assertBlocked("TASK_SCOPE_VIOLATION", "--changed-files",
+                           self.changed("docs/governance/CURRENT_TASK.md"))
+
+
 class SnapshotChecks(GateBase):
     def test_tampered_snapshot(self):
         path = self.project / SNAP / "CONSTITUTION.md"

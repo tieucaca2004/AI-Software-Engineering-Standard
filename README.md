@@ -37,6 +37,7 @@ the Founder explicitly accepts it.
 5. Create `docs/governance/CURRENT_TASK.md` from the template for each task; it must say `Status: Authorized`.
 6. Run the gate before work:
    `python docs/governance/ases/scripts/ases_gate.py check --project-root . --task docs/governance/CURRENT_TASK.md`
+   In CI, add `--changed-files changed-files.txt` so changes outside the task's allowed paths block.
 7. Enable the CI workflow from `templates/ases-governance.yml`.
 8. Require a Milestone Completion Report and explicit Founder acceptance before official integration.
 

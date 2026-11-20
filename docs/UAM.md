@@ -137,6 +137,11 @@ It verifies the snapshot/lock/approval (when adopted), the required Project Cont
 fields, and the `Authorized` current-task record. It is offline and read-only. Exit `0` allows
 implementation; `1` blocks; `2` means the check could not run.
 
+When CI also supplies `--changed-files <newline-separated-list>`, the gate enforces the task's
+`Files/modules allowed` patterns against every changed path and blocks out-of-scope changes. The
+patterns are comma-separated and use case-sensitive `fnmatch` semantics; `*` matches any characters
+including `/`. Use `all` only for an explicitly repo-wide task.
+
 Other read-only subcommands: `lock` (prints a lock for a vendored snapshot; it **refuses** unless the
 referenced approval record exists, is well formed, says `Approved`, matches the snapshot version and
 manifest hash, and the snapshot verifies; `lock --manifest-sha256` prints just the manifest hash

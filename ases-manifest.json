@@ -10,7 +10,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "7f3e71783a6ed57b0c598daed9bffb52e78bd19be906c6fab4a3ce123fedeb7d"
+      "sha256": "0cc8d2c007b7401edc72e419400873dcf1c2ad7c5aa7706ad468fa8a09e80359"
     },
     {
       "path": "CLAUDE.md",
@@ -26,15 +26,15 @@
     },
     {
       "path": "docs/ENFORCEMENT_MODEL.md",
-      "sha256": "4c4d03941ded4c721892249e4aefd61f931fa8eea9991bb4e534476e1335fef8"
+      "sha256": "4d11a0a0a850ec1bd4705eba23d1083d0c05a4cb1983690760b645d66e6bc778"
     },
     {
       "path": "docs/LIFECYCLE_GATES.md",
-      "sha256": "018640deda6b054abc530b11b023bd9524e1b5b605f9c763a7036203d2565afd"
+      "sha256": "a77ce3e1ef41e05b778dcdf7781c4dd7cd2d335e678169e9566b4f48cc031357"
     },
     {
       "path": "docs/PROJECT_ADOPTION.md",
-      "sha256": "0a78f3d42b23e062ac7baa9f355f571f13ae4f4a9768f54caaadcba840b21b8d"
+      "sha256": "f1b480890b5ed00bfabcb4c3ff49a4938154ab1dad0b280d7eea573b734fc11c"
     },
     {
       "path": "docs/RELEASE_AND_CHANGE_CONTROL.md",
@@ -42,7 +42,7 @@
     },
     {
       "path": "docs/UAM.md",
-      "sha256": "98a22410bafba52da6aef05adcbe2baf93ff92a3965d91885c3eba25b2cad462"
+      "sha256": "c588858e63d78724e0573c852cb30054d57a5d44194a6166c936c482de16bb39"
     },
     {
       "path": "enforcement/copilot-instructions.md",
@@ -58,7 +58,7 @@
     },
     {
       "path": "scripts/ases_gate.py",
-      "sha256": "5052c410027bd9d303613bb0e55df6bab53c50fe29b429a74940a57fa777919b"
+      "sha256": "582278a0634ba0cf7efcf55107eb04f61fd904489fae294f08ea756fd3d9c105"
     },
     {
       "path": "scripts/ases_verify.py",
@@ -78,7 +78,7 @@
     },
     {
       "path": "templates/CURRENT_TASK.md",
-      "sha256": "49c40ed12f608366481120ee0bf8e6a9683c87360f9d91b9ea9920e5217af000"
+      "sha256": "e4594eee715b7a31553b353a30165d17eff1b9b7c5115be4976e6cafa967a361"
     },
     {
       "path": "templates/MILESTONE_COMPLETION_REPORT.md",
@@ -86,7 +86,7 @@
     },
     {
       "path": "templates/PROJECT_COMPLIANCE_PROFILE.md",
-      "sha256": "08132b04f1f225a74b86f88546a2491e6c5de86c52c7541a64b68c2c48ffe427"
+      "sha256": "63bb1293799ca478486827f0495b489a79bda80910a14275e9fc8904c7b18732"
     },
     {
       "path": "templates/PROJECT_CONTEXT.md",
@@ -94,7 +94,7 @@
     },
     {
       "path": "templates/ases-governance.yml",
-      "sha256": "7a823bce2b82b8e5f6f8e444fdc937d30e1074321653925426fd1441beee30bd"
+      "sha256": "d30c7619a12bb0b925de7d61af6e738eb39cb6b5a4887313d86d2b627c79a6e8"
     }
   ]
 }

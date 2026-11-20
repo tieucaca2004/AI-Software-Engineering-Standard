@@ -78,9 +78,9 @@ class PolicyFiles(unittest.TestCase):
 
     def test_adopted_workflow_template_runs_verify_and_gate(self):
         text = (ROOT / "templates" / "ases-governance.yml").read_text(encoding="utf-8")
-        self.assertIn("ases_verify.py verify", text)
-        self.assertIn("ases_gate.py check", text)
-        self.assertIn("CURRENT_TASK.md", text)
+        for needle in ("ases_verify.py verify", "ases_gate.py check", "CURRENT_TASK.md",
+                       "--changed-files", "fetch-depth: 0"):
+            self.assertIn(needle, text)
 
 
 if __name__ == "__main__":

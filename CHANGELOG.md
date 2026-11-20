@@ -9,7 +9,8 @@
   and the task-entry authorization record (`templates/CURRENT_TASK.md`).
 - Added `scripts/ases_gate.py`, an offline read-only gate that blocks implementation when the
   Project Context is missing or incomplete, the current task is not explicitly authorized, or
-  the adopted ASES snapshot/lock/approval record does not verify.
+  the adopted ASES snapshot/lock/approval record does not verify. With `--changed-files`, it also
+  blocks changes outside the task's `Files/modules allowed` patterns.
 - Added `docs/LIFECYCLE_GATES.md` as the operational G0–G7 gate and evidence reference.
 - Updated AI adapters (Codex/AGENTS, Claude Code, Cursor, Copilot, generic) to require the
   Project Context, the current task record and the gate.

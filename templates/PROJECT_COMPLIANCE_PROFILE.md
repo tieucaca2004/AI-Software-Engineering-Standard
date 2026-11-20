@@ -18,6 +18,7 @@ Responsible owner:
 - Instruction adapters installed:
 - Snapshot verify command: python docs/governance/ases/scripts/ases_verify.py verify --project-root .
 - Task-entry gate command: python docs/governance/ases/scripts/ases_gate.py check --project-root . --task docs/governance/CURRENT_TASK.md
+- CI adds --changed-files changed-files.txt so changes outside the authorized paths block.
 - CI governance workflow enabled:
 
 ## Approved project baseline

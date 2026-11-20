@@ -26,11 +26,27 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
       - name: Verify ASES snapshot and approval record
         run: python docs/governance/ases/scripts/ases_verify.py verify --project-root .
-      - name: Check project context and current task
-        run: python docs/governance/ases/scripts/ases_gate.py check --project-root . --task docs/governance/CURRENT_TASK.md
+      - name: Compute changed files (pull request)
+        if: github.event_name == 'pull_request'
+        run: git -c core.quotePath=false diff --name-only "origin/${{ github.base_ref }}...HEAD" > changed-files.txt
+      - name: Compute changed files (push)
+        if: github.event_name == 'push'
+        run: |
+          if git rev-parse --verify "${{ github.event.before }}^{commit}" >/dev/null 2>&1; then
+            git -c core.quotePath=false diff --name-only "${{ github.event.before }}..HEAD" > changed-files.txt
+          fi
+      - name: Check project context, current task and scope
+        run: |
+          if [ -f changed-files.txt ]; then
+            python docs/governance/ases/scripts/ases_gate.py check --project-root . --task docs/governance/CURRENT_TASK.md --changed-files changed-files.txt
+          else
+            python docs/governance/ases/scripts/ases_gate.py check --project-root . --task docs/governance/CURRENT_TASK.md
+          fi
