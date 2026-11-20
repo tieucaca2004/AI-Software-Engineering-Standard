@@ -10,7 +10,7 @@
     },
     {
       "path": "CHANGELOG.md",
-      "sha256": "0cc8d2c007b7401edc72e419400873dcf1c2ad7c5aa7706ad468fa8a09e80359"
+      "sha256": "b58711720f830061aa06f7a66f2b258a61b14b5e13e0dea375e04bec180ab885"
     },
     {
       "path": "CLAUDE.md",
@@ -26,7 +26,7 @@
     },
     {
       "path": "docs/ENFORCEMENT_MODEL.md",
-      "sha256": "4d11a0a0a850ec1bd4705eba23d1083d0c05a4cb1983690760b645d66e6bc778"
+      "sha256": "f4e53807ec5debbc01d8e11728a6ae2ec4ff06f570ebe1c2f2d059cede6e68e2"
     },
     {
       "path": "docs/LIFECYCLE_GATES.md",
@@ -34,7 +34,7 @@
     },
     {
       "path": "docs/PROJECT_ADOPTION.md",
-      "sha256": "f1b480890b5ed00bfabcb4c3ff49a4938154ab1dad0b280d7eea573b734fc11c"
+      "sha256": "14ae8552b42f6af4b8639355671fb51e807aade26c079e00c2e58b2df7ab38c0"
     },
     {
       "path": "docs/RELEASE_AND_CHANGE_CONTROL.md",
@@ -42,7 +42,7 @@
     },
     {
       "path": "docs/UAM.md",
-      "sha256": "c588858e63d78724e0573c852cb30054d57a5d44194a6166c936c482de16bb39"
+      "sha256": "d3eb6e42901d7b205e9830376a057f2e193dafffb4391b98a2ffb781b5a27245"
     },
     {
       "path": "enforcement/copilot-instructions.md",
@@ -58,7 +58,7 @@
     },
     {
       "path": "scripts/ases_gate.py",
-      "sha256": "582278a0634ba0cf7efcf55107eb04f61fd904489fae294f08ea756fd3d9c105"
+      "sha256": "7306ebae35f67a4ad9c15faa1bbf737698dc759f0cc541f60e13ae1cee109ed5"
     },
     {
       "path": "scripts/ases_verify.py",
@@ -90,7 +90,7 @@
     },
     {
       "path": "templates/PROJECT_CONTEXT.md",
-      "sha256": "6f8a50fa5ce13703aa73227728fbac5997ba31fdabf3e215681d1af3456717b6"
+      "sha256": "4840c584f103e581626835fc40f666e839704bd75a7186020b0aef3429600c6d"
     },
     {
       "path": "templates/ases-governance.yml",

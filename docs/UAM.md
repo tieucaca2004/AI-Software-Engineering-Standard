@@ -134,8 +134,9 @@ python docs/governance/ases/scripts/ases_gate.py check \
 ```
 
 It verifies the snapshot/lock/approval (when adopted), the required Project Context sections and
-fields, and the `Authorized` current-task record. It is offline and read-only. Exit `0` allows
-implementation; `1` blocks; `2` means the check could not run.
+fields, the approved-decisions file referenced by the Project Context, and the `Authorized`
+current-task record. It is offline and read-only. Exit `0` allows implementation; `1` blocks; `2`
+means the check could not run.
 
 When CI also supplies `--changed-files <newline-separated-list>`, the gate enforces the task's
 `Files/modules allowed` patterns against every changed path and blocks out-of-scope changes. The

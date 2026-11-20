@@ -99,7 +99,7 @@ Use `N/A (reason)` only when a field genuinely does not apply.
 
 ## 9. Founder Decisions
 
-- Approved decisions: docs/governance/APPROVED_DECISIONS.md
+- Approved decisions: docs/governance/APPROVED_DECISIONS.md (required; the file must exist and be non-empty)
 - Locked constraints:
 - Open proposals (not approved):
 - Exceptions approved by the Founder:

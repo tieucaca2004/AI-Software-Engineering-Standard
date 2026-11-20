@@ -25,9 +25,9 @@ instruction-loading behavior when adopting or upgrading it.
   own policy files and prints the reading sequence. It does not prove that a model read them.
 - Adopted project: `python docs/governance/ases/scripts/ases_gate.py check --project-root . --task
   docs/governance/CURRENT_TASK.md`. It verifies the pinned snapshot, checks the Project Context's
-  required sections/fields/requirements, and requires an `Authorized` task record. When CI supplies
-  `--changed-files`, it also blocks changes outside the task's allowed paths. It is read-only and
-  offline.
+  required sections/fields/requirements and the approved-decisions file it references, and requires
+  an `Authorized` task record. When CI supplies `--changed-files`, it also blocks changes outside the
+  task's allowed paths. It is read-only and offline.
 - The gate is deterministic and fail-closed, but it evaluates documents. It cannot prove reading,
   understanding or the authenticity of a self-declared approval.
 

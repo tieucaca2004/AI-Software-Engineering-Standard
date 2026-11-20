@@ -143,6 +143,8 @@ Before implementation starts, create these project-owned records from the snapsh
      only for an explicitly repo-wide task. CI passes `--changed-files` so every changed path must
      match; an out-of-scope change blocks the gate.
 3. `docs/governance/APPROVED_DECISIONS.md` from `templates/APPROVED_DECISIONS.md`.
+   The file must exist and be non-empty; the Project Context `Approved decisions` field must point
+   to it, and the gate checks both.
 4. `docs/governance/PROJECT_COMPLIANCE_PROFILE.md` from `templates/PROJECT_COMPLIANCE_PROFILE.md`.
 
 Governance records must be populated from verified project records. Do not invent decisions or infer

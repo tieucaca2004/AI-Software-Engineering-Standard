@@ -254,7 +254,7 @@ def check_requirements(section_text, findings):
                                 "at least one requirement must be Specified or Approved"))
 
 
-def check_context(text, findings):
+def check_context(text, root_real, findings):
     if PLACEHOLDER.search(text):
         findings.append(Finding("CONTEXT_PLACEHOLDER", DEFAULT_CONTEXT,
                                 "placeholder text is still present"))
@@ -306,6 +306,24 @@ def check_context(text, findings):
     if "APPROVED_DECISIONS.md" not in decisions:
         findings.append(Finding("CONTEXT_DECISIONS", "founder decisions",
                                 "reference docs/governance/APPROVED_DECISIONS.md"))
+    else:
+        references = field_values(decisions, "Approved decisions")
+        if not references:
+            findings.append(Finding("CONTEXT_DECISIONS", "founder decisions",
+                                    "Approved decisions field is missing"))
+        else:
+            reference = references[0]
+            try:
+                decision_file = av.resolve_inside(root_real, reference)
+                if not os.path.isfile(decision_file):
+                    findings.append(Finding("CONTEXT_DECISIONS", "founder decisions",
+                                            "approved decisions file not found: %s" % reference))
+                elif os.path.getsize(decision_file) == 0:
+                    findings.append(Finding("CONTEXT_DECISIONS", "founder decisions",
+                                            "approved decisions file is empty: %s" % reference))
+            except av.PathProblem as exc:
+                findings.append(Finding("CONTEXT_DECISIONS", "founder decisions",
+                                        "unsafe approved decisions path: %s" % exc))
     return identity_values
 
 
@@ -464,7 +482,7 @@ def cmd_check(args):
         findings.append(Finding("CONTEXT_MISSING" if isinstance(exc, FileNotFoundError) else "CONTEXT_INVALID",
                                 args.context, str(exc)))
     else:
-        identity = check_context(context_text, findings)
+        identity = check_context(context_text, root, findings)
 
     task_values = None
     try:

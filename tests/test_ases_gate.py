@@ -158,6 +158,8 @@ def make_project(base):
     put(base / LOCK, av.dump_json(lock))
     put(base / CONTEXT, CONTEXT_TEXT)
     put(base / TASK, TASK_TEXT)
+    put(base / "docs/governance/APPROVED_DECISIONS.md",
+        "# APPROVED DECISIONS\n\nNo decisions recorded in this test fixture.\n")
     return base, lock
 
 
@@ -213,6 +215,8 @@ class ValidGate(GateBase):
         put(plain / "CONSTITUTION.md", (ROOT / "CONSTITUTION.md").read_bytes())
         put(plain / CONTEXT, CONTEXT_TEXT)
         put(plain / TASK, TASK_TEXT)
+        put(plain / "docs/governance/APPROVED_DECISIONS.md",
+            "# APPROVED DECISIONS\n\nNo decisions recorded in this test fixture.\n")
         rc, out = cli("check", "--project-root", plain)
         self.assertEqual(rc, 0, out)
         self.assertIn("Root CONSTITUTION.md is present", out)
@@ -268,6 +272,11 @@ class ContextChecks(GateBase):
         self.replace(CONTEXT, "- Approved decisions: docs/governance/APPROVED_DECISIONS.md",
                      "- Approved decisions: none recorded")
         self.assertBlocked("CONTEXT_DECISIONS")
+
+    def test_context_decisions_file_missing(self):
+        os.remove(self.project / "docs/governance/APPROVED_DECISIONS.md")
+        out = self.assertBlocked("CONTEXT_DECISIONS")
+        self.assertIn("approved decisions file not found", out)
 
 
 class TaskChecks(GateBase):
@@ -351,6 +360,66 @@ class ScopeChecks(GateBase):
     def test_scope_blocks_task_record_change(self):
         self.assertBlocked("TASK_SCOPE_VIOLATION", "--changed-files",
                            self.changed("docs/governance/CURRENT_TASK.md"))
+
+
+class AdoptedProjectCI(GateBase):
+    """Exercise the adopted-project CI commands on a real temporary Git repository."""
+
+    def setUp(self):
+        super().setUp()
+        self.git = shutil.which("git")
+        if not self.git:
+            self.skipTest("git is not available")
+        put(self.project / "src/sample.py", "baseline\n")
+        put(self.project / "src/other.py", "baseline\n")
+        put(self.project / "docs/other.md", "baseline\n")
+        put(self.project / ".github/workflows/ases-governance.yml",
+            (ROOT / "templates" / "ases-governance.yml").read_bytes())
+        self.run_git("init", "-b", "main")
+        self.run_git("config", "user.email", "test@example.invalid")
+        self.run_git("config", "user.name", "ASES test")
+        self.run_git("add", "-A")
+        self.run_git("commit", "-m", "adopted project baseline")
+
+    def run_git(self, *args):
+        proc = subprocess.run([self.git, "-C", str(self.project), *args],
+                              capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        return proc
+
+    def changed_files(self):
+        return [line for line in self.run_git("diff", "--name-only", "HEAD").stdout.splitlines() if line]
+
+    def changed_list(self, *paths):
+        put(self.project / "changed-files.txt", "\n".join(paths) + "\n")
+        return "changed-files.txt"
+
+    def test_adopted_ci_valid_repository_passes(self):
+        put(self.project / "src/sample.py", "changed\n")
+        paths = self.changed_files()
+        self.assertEqual(paths, ["src/sample.py"])
+        rc, out = self.gate("--changed-files", self.changed_list(*paths))
+        self.assertEqual(rc, 0, out)
+
+    def test_adopted_ci_missing_context_fails(self):
+        os.remove(self.project / CONTEXT)
+        rc, out = self.gate("--changed-files", self.changed_list(*self.changed_files()))
+        self.assertEqual(rc, 1, out)
+        self.assertIn("[CONTEXT_MISSING]", out)
+
+    def test_adopted_ci_missing_task_fails(self):
+        os.remove(self.project / TASK)
+        rc, out = self.gate("--changed-files", self.changed_list(*self.changed_files()))
+        self.assertEqual(rc, 1, out)
+        self.assertIn("[TASK_MISSING]", out)
+
+    def test_adopted_ci_out_of_scope_change_fails(self):
+        put(self.project / "docs/other.md", "changed\n")
+        paths = self.changed_files()
+        self.assertIn("docs/other.md", paths)
+        rc, out = self.gate("--changed-files", self.changed_list(*paths))
+        self.assertEqual(rc, 1, out)
+        self.assertIn("[TASK_SCOPE_VIOLATION] docs/other.md", out)
 
 
 class SnapshotChecks(GateBase):
