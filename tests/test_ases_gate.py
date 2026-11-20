@@ -210,6 +210,10 @@ class ValidGate(GateBase):
         self.assertIn("ASES snapshot, lock and approval record verify", out)
         self.assertIn("cannot prove that a Founder approval is genuine", out)
 
+    def test_usage_errors_exit_2(self):
+        self.assertEqual(cli()[0], 2)
+        self.assertEqual(cli("check", "--project-root", self.dir / "missing")[0], 2)
+
     def test_non_adopted_project_with_root_constitution_passes(self):
         plain = self.dir / "plain"
         put(plain / "CONSTITUTION.md", (ROOT / "CONSTITUTION.md").read_bytes())
