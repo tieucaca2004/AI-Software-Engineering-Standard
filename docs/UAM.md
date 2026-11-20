@@ -189,7 +189,8 @@ WSL, or `| Out-File -Encoding ascii` (the tool rejects BOMs and UTF-16).
   `.github/copilot-instructions.md`) are project-owned and unverified; they can drift from the snapshot.
 - Tested on Python 3.13 (Windows); the code targets Python 3.12+ and uses only the standard library.
   Symbolic links are rejected on every version; Windows junction detection relies on
-  `os.path.isjunction` (Python 3.12+). Junctions were not tested.
+  `os.path.isjunction` (Python 3.12+). Junction rejection is covered by a Windows-only test.
+  Symlink creation was not permitted in the local test environment; the symlink test is skipped there.
 - Tool loading behaviour (imports, rule discovery) can change; validate it as in
   `docs/PROJECT_ADOPTION.md` section 7.
 - Not provided: installer/`apply`, automatic updates or watchers, signatures or key management, fleet

@@ -235,6 +235,23 @@ class FileIntegrity(Base):
         self.assertIn("empty", out)
         self.assertIn("empty directory", out)
 
+    @unittest.skipUnless(os.name == "nt", "Windows junction test")
+    def test_junction_in_snapshot_rejected(self):
+        docs = self.project / SNAP / "docs"
+        outside = self.dir / "outside_docs"
+        shutil.copytree(docs, outside)
+        shutil.rmtree(docs)
+        proc = subprocess.run(["cmd", "/c", "mklink", "/J", str(docs), str(outside)],
+                              capture_output=True, text=True)
+        if proc.returncode != 0:
+            self.skipTest("junction creation not permitted: %s" % (proc.stdout + proc.stderr))
+        try:
+            out = self.assertFails("FILE_INVALID")
+            self.assertIn("junction", out)
+        finally:
+            if os.path.lexists(docs):
+                os.rmdir(docs)
+
     def test_symlink_in_snapshot_rejected(self):
         victim = self.project / SNAP / "VERSION"
         outside = self.dir / "outside.txt"

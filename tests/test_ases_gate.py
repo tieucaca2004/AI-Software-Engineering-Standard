@@ -208,6 +208,26 @@ class ValidGate(GateBase):
         self.assertIn("ASES snapshot, lock and approval record verify", out)
         self.assertIn("cannot prove that a Founder approval is genuine", out)
 
+    def test_non_adopted_project_with_root_constitution_passes(self):
+        plain = self.dir / "plain"
+        put(plain / "CONSTITUTION.md", (ROOT / "CONSTITUTION.md").read_bytes())
+        put(plain / CONTEXT, CONTEXT_TEXT)
+        put(plain / TASK, TASK_TEXT)
+        rc, out = cli("check", "--project-root", plain)
+        self.assertEqual(rc, 0, out)
+        self.assertIn("Root CONSTITUTION.md is present", out)
+
+    def test_gate_works_with_network_blocked(self):
+        code = (
+            "import socket, runpy, sys\n"
+            "def blocked(*a, **k):\n    raise RuntimeError('network access attempted')\n"
+            "socket.socket = blocked; socket.create_connection = blocked; socket.getaddrinfo = blocked\n"
+            "sys.argv = [%r, 'check', '--project-root', %r]\n"
+            "runpy.run_path(%r, run_name='__main__')\n" % (str(SCRIPT), str(self.project), str(SCRIPT)))
+        proc = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("RESULT: PASS", proc.stdout)
+
     def test_gate_is_read_only(self):
         before = tree_state(self.project)
         self.assertEqual(self.gate()[0], 0)
