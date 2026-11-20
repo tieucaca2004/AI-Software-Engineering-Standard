@@ -2,10 +2,11 @@
 
 **Status:** Prepared for independent human review. This document is not a review, approval, acceptance or merge authorization.
 
-**Baseline:** reviewed implementation baseline `03c3b7f`; `main` at `14b9a82`; PR #1 and PR #2 open.
+**Baseline:** reviewed implementation `03c3b7f` (pre-audit) plus the defect-fix commit included in this
+PR; `main` at `14b9a82`; PR #1 and PR #2 open.
 
-This package reviews the implementation baseline `03c3b7f`. This file is a review aid and may be
-amended later; any such amendment does not change the reviewed implementation baseline.
+This package reviews the implementation in PR #1. This file is a review aid and may be amended
+later; any such amendment does not change the reviewed implementation commits.
 
 ## 1. Purpose
 
@@ -17,12 +18,10 @@ PR #1 and PR #2 without relying on the author's summary.
 ### 2.1 Scope
 
 - Branch: `uam-mvp`
-- Reviewed implementation head: `03c3b7f`
+- Pre-audit implementation head: `03c3b7f`
 - Base: `main` at `14b9a82`
-- Implementation commits: 8 (the review-package file and any later documentation amendment are not
-  implementation commits)
-- Implementation diff at `03c3b7f`: 29 files, +3656/−123
-- PR #1 also carries this review-package file; it is not part of the reviewed implementation commit.
+- Implementation commits: 9 (8 pre-audit commits + 1 defect-fix commit)
+- The review-package file and any later documentation amendment are not implementation commits.
 - No merge, approval or Founder acceptance is claimed.
 
 ### 2.2 Change map
@@ -57,10 +56,10 @@ Command:
 python -m unittest discover -s tests -q
 ```
 
-Result at `03c3b7f` (same suite re-run after the `adce730` documentation commit):
+Result after the defect-fix commit (suite grew from 101 to 102 tests):
 
 ```text
-Ran 101 tests in 39.299s
+Ran 102 tests in 37.489s
 OK (skipped=1)
 ```
 
@@ -78,6 +77,7 @@ Key coverage:
 | Approval record cannot be self-declared | `ApprovalRecord` |
 | Adapters require governance | `test_adapters.py` |
 | Repository policy/Constitution intact | `test_policy.py` |
+| Malformed manifest handled cleanly | `test_policy.py` |
 
 The single skip is `test_symlink_in_snapshot_rejected` because Windows did not permit symlink
 creation in the local environment. Windows junction rejection is tested and passes.

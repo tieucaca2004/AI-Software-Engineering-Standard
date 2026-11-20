@@ -78,10 +78,13 @@ def main():
         return fail("ases-manifest.json root must be an object")
     if manifest.get("schema") != "ases-manifest/1":
         return fail("ases-manifest.json schema is not ases-manifest/1")
+    files = manifest.get("files")
+    if not isinstance(files, list):
+        return fail("ases-manifest.json files must be a non-empty list")
     if manifest.get("ases_version") != version:
         return fail("VERSION (%s) does not match manifest ases_version (%s)" % (
             version, manifest.get("ases_version")))
-    listed = {entry.get("path") for entry in manifest.get("files", []) if isinstance(entry, dict)}
+    listed = {entry.get("path") for entry in files if isinstance(entry, dict)}
     managed = set(ases_verify.MANAGED_FILES)
     if listed != managed:
         return fail("manifest file set does not match the managed set")

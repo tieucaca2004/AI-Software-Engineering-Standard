@@ -1,6 +1,7 @@
 """Repository-level policy checks: standard files, lifecycle and CI wiring."""
 import contextlib
 import io
+import json
 import shutil
 import subprocess
 import sys
@@ -56,6 +57,27 @@ class PolicyFiles(unittest.TestCase):
                 capture_output=True, text=True)
             self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
             self.assertIn("stale", proc.stdout)
+
+    def test_check_policy_rejects_non_list_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            temp = Path(tmp)
+            for rel in check_policy.REQUIRED:
+                target = temp / rel
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / rel, target)
+            manifest = json.loads((temp / "ases-manifest.json").read_text(encoding="utf-8"))
+            manifest["files"] = None
+            (temp / "ases-manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+            old_root = check_policy.ROOT
+            check_policy.ROOT = temp
+            try:
+                buffer = io.StringIO()
+                with contextlib.redirect_stdout(buffer):
+                    rc = check_policy.main()
+            finally:
+                check_policy.ROOT = old_root
+            self.assertEqual(rc, 1, buffer.getvalue())
+            self.assertIn("files must be a non-empty list", buffer.getvalue())
 
     def test_version_matches_manifest(self):
         import json
