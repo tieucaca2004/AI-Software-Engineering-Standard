@@ -2,10 +2,10 @@
 
 **Status:** Prepared for independent human review. This document is not a review, approval, acceptance or merge authorization.
 
-**Baseline:** `uam-mvp` at `03c3b7f`; `main` at `14b9a82`; PR #1 open; PR #2 open.
+**Baseline:** reviewed implementation baseline `03c3b7f`; `main` at `14b9a82`; PR #1 and PR #2 open.
 
-This package reviews the implementation baseline `03c3b7f`. It is itself a documentation addition on
-top of that baseline, so it does not change the reviewed implementation commit.
+This package reviews the implementation baseline `03c3b7f`. This file is a review aid and may be
+amended later; any such amendment does not change the reviewed implementation baseline.
 
 ## 1. Purpose
 
@@ -17,12 +17,12 @@ PR #1 and PR #2 without relying on the author's summary.
 ### 2.1 Scope
 
 - Branch: `uam-mvp`
-- Head: `03c3b7f`
+- Reviewed implementation head: `03c3b7f`
 - Base: `main` at `14b9a82`
-- Commits: 8
+- Implementation commits: 8 (the review-package file and any later documentation amendment are not
+  implementation commits)
 - Implementation diff at `03c3b7f`: 29 files, +3656/−123
-- This review package is an additional documentation file, not part of the reviewed implementation
-  commit.
+- PR #1 also carries this review-package file; it is not part of the reviewed implementation commit.
 - No merge, approval or Founder acceptance is claimed.
 
 ### 2.2 Change map
@@ -57,7 +57,7 @@ Command:
 python -m unittest discover -s tests -q
 ```
 
-Result at `03c3b7f`:
+Result at `03c3b7f` (same suite re-run after the `adce730` documentation commit):
 
 ```text
 Ran 101 tests in 39.299s
@@ -85,6 +85,7 @@ creation in the local environment. Windows junction rejection is tested and pass
 ### 2.5 CI evidence
 
 - [Run 44745255295](https://github.com/tieucaca2004/AI-Software-Engineering-Standard/actions/runs/44745255295) — success at `03c3b7f`.
+- [Run 44748233466](https://github.com/tieucaca2004/AI-Software-Engineering-Standard/actions/runs/44748233466) — success at the prior review-package commit `adce730`.
 - Required check: `ASES policy files`.
 - Workflow steps: policy check, preflight, manifest check, full tests.
 
