@@ -5,10 +5,10 @@ alwaysApply: true
 
 # ASES Mandatory Rules
 
-Read the complete ASES `CONSTITUTION.md` before performing any task (in an adopted project: `docs/governance/ases/CONSTITUTION.md`, or the `snapshot_dir` recorded in `docs/governance/ases.lock.json`). Also read project-specific approved decisions, scope, constraints and current milestone documents.
+Read the complete ASES `CONSTITUTION.md` before performing any task (in an adopted project: `docs/governance/ases/CONSTITUTION.md`, or the `snapshot_dir` recorded in `docs/governance/ases.lock.json`). Also read the project's `docs/governance/PROJECT_CONTEXT.md`, approved decisions, scope, constraints, current milestone and `docs/governance/CURRENT_TASK.md`.
 
-If the Constitution or required project governance cannot be accessed, stop before implementation and report the blocker.
+In an adopted project, run `python docs/governance/ases/scripts/ases_gate.py check --project-root . --task docs/governance/CURRENT_TASK.md`. If the gate blocks, or the Constitution or required project governance cannot be accessed, stop before implementation and report the blocker.
 
-Do not expand scope, change approved architecture or locked decisions, modify unrelated modules, alter production data, or replace critical dependencies without explicit Founder approval. Do not claim tests passed unless executed and evidenced. Do not self-approve milestones or officially integrate work before explicit Founder acceptance. Protect secrets, user/runtime data and Git history. Never force-push.
+Do not expand scope, change approved architecture or locked decisions, modify unrelated modules, alter production data, or replace critical dependencies without explicit Founder approval. Do not claim tests passed unless executed and evidenced. Do not self-approve milestones, task scope or Founder acceptance. Do not officially integrate work before explicit Founder acceptance. Protect secrets, user/runtime data and Git history. Never force-push.
 
 At task completion, report files changed, tests executed and results, evidence, known issues, deviations and Git status.

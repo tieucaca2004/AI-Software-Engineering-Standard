@@ -229,6 +229,12 @@ class FileIntegrity(Base):
         os.remove(manifest)
         self.assertFails("FILE_MISSING")
 
+    def test_empty_directory_in_snapshot_rejected(self):
+        os.makedirs(self.project / SNAP / "empty")
+        out = self.assertFails("FILE_UNEXPECTED")
+        self.assertIn("empty", out)
+        self.assertIn("empty directory", out)
+
     def test_symlink_in_snapshot_rejected(self):
         victim = self.project / SNAP / "VERSION"
         outside = self.dir / "outside.txt"
@@ -343,6 +349,24 @@ class ApprovalRecord(Base):
         self.rewrite(from_version="0.9.0", diff_reviewed="yes", change_request="CR-1")
         self.assertEqual(self.verify()[0], 0)
 
+    def test_first_adoption_requires_no_change_request(self):
+        self.rewrite(change_request="CR-1")
+        self.assertFails("APPROVAL_RECORD_INVALID")
+
+    def test_upgrade_requires_change_request(self):
+        self.rewrite(from_version="0.9.0", diff_reviewed="yes", change_request="none")
+        self.assertFails("APPROVAL_RECORD_INVALID")
+
+    def test_transition_must_change_version(self):
+        self.rewrite(from_version=self.lock["ases_version"], diff_reviewed="yes",
+                     change_request="CR-1")
+        self.assertFails("APPROVAL_RECORD_INVALID")
+
+    def test_evidence_cannot_be_self_authorization(self):
+        for evidence in ("self", "agent", "none", "implied", "silence"):
+            self.rewrite(evidence=evidence)
+            self.assertFails("APPROVAL_RECORD_INVALID")
+
     def test_record_malformed(self):
         put(self.project / RECORD, "no front matter\n")
         self.assertFails("APPROVAL_RECORD_INVALID")
@@ -411,6 +435,17 @@ class LockGeneration(Base):
         rc, out, err = self.run_lock("--manifest-sha256")
         self.assertEqual(rc, 0, err)
         self.assertEqual(out, self.lock["manifest"]["sha256"] + "\n")
+        self.assertEqual(before, tree_state(self.project))
+
+    def test_lock_refuses_tampered_snapshot(self):
+        path = self.project / SNAP / "CONSTITUTION.md"
+        path.write_bytes(path.read_bytes() + b"tampered\n")
+        before = tree_state(self.project)
+        rc, out, err = self.run_lock("--approval-record", RECORD)
+        self.assertEqual(rc, 1, out + err)
+        self.assertEqual(out, "", "a refused lock must print nothing to stdout")
+        self.assertIn("LOCK REFUSED", err)
+        self.assertIn("snapshot does not verify", err)
         self.assertEqual(before, tree_state(self.project))
 
 

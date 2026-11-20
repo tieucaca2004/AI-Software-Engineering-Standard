@@ -34,6 +34,11 @@ Repository:
 ## Rules
 - Fill the front-matter fields (between the `---` lines) only after the Founder has explicitly decided.
   Template placeholders (`<...>`) make `ases_verify.py verify` fail on purpose.
+- A first adoption uses `from_version: none` and `change_request: none`. An upgrade or rollback
+  must reference a Change Request and use `diff_reviewed: yes`; `from_version` and `to_version`
+  must differ.
+- `evidence` must identify where the explicit decision can be inspected. `self`, `agent`, `none`,
+  `implied` and `silence` are rejected.
 - A lock file, a Git commit, a passing verification or silence is NOT approval (Constitution, Articles 12 and 31).
 - This record is project-owned and self-declared. `ases_verify.py` checks that it exists, is well formed and
   matches the lock; it cannot prove the decision was made. Protect it with the project's review process.

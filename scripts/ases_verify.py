@@ -45,14 +45,23 @@ MANAGED_FILES = (
     "CONSTITUTION.md",
     "VERSION",
     "docs/ENFORCEMENT_MODEL.md",
+    "docs/LIFECYCLE_GATES.md",
     "docs/PROJECT_ADOPTION.md",
+    "docs/RELEASE_AND_CHANGE_CONTROL.md",
     "docs/UAM.md",
     "enforcement/copilot-instructions.md",
     "enforcement/cursor/ases.mdc",
     "enforcement/generic/PROJECT_AI_INSTRUCTIONS.md",
+    "scripts/ases_gate.py",
     "scripts/ases_verify.py",
+    "templates/APPROVED_DECISIONS.md",
     "templates/ASES_APPROVAL_RECORD.md",
     "templates/CHANGE_REQUEST.md",
+    "templates/CURRENT_TASK.md",
+    "templates/MILESTONE_COMPLETION_REPORT.md",
+    "templates/PROJECT_COMPLIANCE_PROFILE.md",
+    "templates/PROJECT_CONTEXT.md",
+    "templates/ases-governance.yml",
 )
 REQUIRED_IN_MANIFEST = ("CONSTITUTION.md", "VERSION")
 
@@ -188,6 +197,8 @@ def scan_entries(base):
                 if entry.is_symlink() or _is_junction(entry.path):
                     yield rel, "link"
                 elif entry.is_dir(follow_symlinks=False):
+                    if not os.listdir(entry.path):
+                        yield rel, "empty-dir"
                     stack.append((entry.path, rel + "/"))
                 else:
                     yield rel, "file"
@@ -312,10 +323,20 @@ def check_version_file(base, manifest, subject):
 
 
 def build_lock(root_real, snapshot_dir, repository, commit, record):
+    if record == snapshot_dir or record.startswith(snapshot_dir + "/"):
+        raise LockRefused("approval record must live outside snapshot_dir (project-owned)")
     manifest, manifest_sha = snapshot_manifest(root_real, snapshot_dir)
     _, errors = check_approval_record(root_real, record, manifest["ases_version"], manifest_sha)
     if errors:
         raise LockRefused("approval record %s is not acceptable: %s" % (record, "; ".join(errors)))
+    base = resolve_inside(root_real, snapshot_dir)
+    findings, _ = check_snapshot(base, manifest, True)
+    version_problem = check_version_file(base, manifest, snapshot_dir + "/VERSION")
+    if version_problem:
+        findings.append(version_problem)
+    if findings:
+        raise LockRefused("snapshot does not verify: " + "; ".join(
+            "%s %s: %s" % (item.code, item.subject, item.message) for item in findings))
     lock = collections.OrderedDict([
         ("schema", LOCK_SCHEMA),
         ("ases_version", manifest["ases_version"]),
@@ -432,7 +453,7 @@ def check_snapshot(base, manifest, check_unexpected):
     if check_unexpected:
         for rel, kind in scan_entries(base):
             if rel != MANIFEST_NAME and rel not in expected:
-                what = "link" if kind == "link" else "file"
+                what = "empty directory" if kind == "empty-dir" else ("link" if kind == "link" else "file")
                 findings.append(Finding("FILE_UNEXPECTED", rel, "%s inside the snapshot but not listed in the manifest" % what))
     return findings, ok
 
@@ -480,6 +501,13 @@ def parse_approval_record(data):
         errors.append("from_version must be 'none' or MAJOR.MINOR.PATCH")
     if not SEMVER.match(fields["to_version"]):
         errors.append("to_version must be MAJOR.MINOR.PATCH")
+    if fields["from_version"] == "none":
+        if fields["change_request"].strip().lower() != "none":
+            errors.append("a first adoption must use change_request: none")
+    elif fields["change_request"].strip().lower() == "none":
+        errors.append("an upgrade or rollback must reference a Change Request")
+    if fields["from_version"] != "none" and fields["from_version"] == fields["to_version"]:
+        errors.append("from_version and to_version must differ")
     if not SHA256.match(fields["to_manifest_sha256"]):
         errors.append("to_manifest_sha256 must be 64 lowercase hex characters")
     if fields["diff_reviewed"] not in ("yes", "not-applicable"):
@@ -488,6 +516,9 @@ def parse_approval_record(data):
         errors.append("an upgrade/rollback requires diff_reviewed: yes")
     if fields["founder_decision"] != "Approved":
         errors.append("founder_decision is %r; only 'Approved' allows adoption" % fields["founder_decision"])
+    if fields["evidence"].strip().lower() in {"self", "agent", "none", "n/a", "implied", "silence"}:
+        errors.append("evidence must identify where the explicit decision can be inspected, "
+                      "not self-authorization")
     try:
         datetime.date.fromisoformat(fields["founder_approval_date"])
     except ValueError:
