@@ -206,5 +206,26 @@ class GateIntegration(unittest.TestCase):
         self.assertIn("[IDENTITY_INVALID]", out)
 
 
+class JcsSerialization(unittest.TestCase):
+    def test_utf16_key_ordering(self):
+        # U+10000 has UTF-16 units D800 DC00; U+E000 is a single unit E000.
+        # RFC 8785 orders by UTF-16 units, so U+10000 (D800...) sorts before U+E000.
+        obj = {"\U00010000": "a", "\uE000": "b"}
+        canonical = ai.canonical_json(obj)
+        self.assertEqual(canonical, '{"\U00010000":"a","\uE000":"b"}')
+
+    def test_string_escaping(self):
+        obj = {"k": "\u0000\u0008\u0009\u000a\u000c\u000d\"\\"}
+        self.assertEqual(ai.canonical_json(obj),
+                         '{"k":"\\u0000\\b\\t\\n\\f\\r\\"\\\\"}')
+
+    def test_no_whitespace_and_utf8(self):
+        canonical = ai.canonical_json({"b": "2", "a": "1"})
+        self.assertEqual(canonical, '{"a":"1","b":"2"}')
+        self.assertNotIn(" ", canonical)
+        self.assertNotIn("\n", canonical)
+        self.assertEqual(canonical.encode("utf-8"), b'{"a":"1","b":"2"}')
+
+
 if __name__ == "__main__":
     unittest.main()

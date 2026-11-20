@@ -49,9 +49,58 @@ class IdentityError(ValueError):
     """Raised for an invalid task-identity record (fail closed)."""
 
 
+def _jcs_string(value):
+    out = ['"']
+    for char in value:
+        code = ord(char)
+        if char == '"':
+            out.append('\\"')
+        elif char == '\\':
+            out.append('\\\\')
+        elif char == '\b':
+            out.append('\\b')
+        elif char == '\t':
+            out.append('\\t')
+        elif char == '\n':
+            out.append('\\n')
+        elif char == '\f':
+            out.append('\\f')
+        elif char == '\r':
+            out.append('\\r')
+        elif code < 0x20:
+            out.append('\\u%04x' % code)
+        else:
+            out.append(char)
+    out.append('"')
+    return ''.join(out)
+
+
+def _jcs_units(value):
+    # RFC 8785 orders object keys by UTF-16 code units (big-endian bytes).
+    return value.encode('utf-16-be')
+
+
+def _jcs(value):
+    if isinstance(value, str):
+        return _jcs_string(value)
+    if isinstance(value, list):
+        return '[' + ','.join(_jcs(item) for item in value) + ']'
+    if isinstance(value, dict):
+        parts = []
+        for key in sorted(value.keys(), key=_jcs_units):
+            parts.append(_jcs_string(key) + ':' + _jcs(value[key]))
+        return '{' + ','.join(parts) + '}'
+    raise TypeError('JCS does not serialize %s (rejected by validation)' % type(value).__name__)
+
+
 def canonical_json(obj):
-    """RFC 8785 JCS-compatible canonical JSON for the fixed ASCII-key objects used here."""
-    return json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    """RFC 8785 JCS canonical JSON for the identity-contract subset.
+
+    The identity validator rejects numbers, booleans, null and nested objects before this function
+    is called, so this serializer only handles strings, arrays and objects with string keys. It
+    implements RFC 8785 object-key ordering (UTF-16 code units) and string escaping.
+    """
+    return _jcs(obj)
 
 
 def _normalize_string(value, where):
