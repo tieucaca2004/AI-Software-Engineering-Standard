@@ -3,6 +3,10 @@
 **Status:** Founder-approved contract. Implementation lives in `scripts/ases_identity.py`;
 the record template is `templates/TASK_IDENTITY.json`; the gate accepts
 `ases_gate.py check --identity <file>`.
+
+**G6 Founder Acceptance (Identity Hash feature):** APPROVED by the Founder. This is feature-level
+acceptance only; it does not approve the whole ASES standard or release `VERSION 1.1.0`.
+
 **Owner:** Founder retains approval and release authority.
 
 This document is the single source of truth for the task-identity contract. It separates:
