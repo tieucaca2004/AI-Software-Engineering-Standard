@@ -165,20 +165,28 @@ identical bytes; NFC-equivalent Unicode produces identical bytes; escaping is de
 | B. Recursive nested objects | Expressive | More complexity and ambiguity |
 | C. Ignore unknown keys | Tolerant | Risks two different records producing the same hash |
 
-**Recommended (proposal):** Option A with:
+**Founder-approved sub-decisions (2026-11-20):**
+
+- `acceptance_criteria` is an **ordered list**: order is preserved; no de-duplication.
+- `depends_on` is an **ordered list**: NFC normalization first, then de-duplication keeping the
+  first occurrence.
+
+**Recommended (proposal — remaining, not approved):** Option A with:
 
 - Allowed values: Unicode NFC strings; string arrays for `acceptance_criteria`,
-  `required_capabilities`, `depends_on`.
+  `required_capabilities`, `required_roles`, `depends_on`.
+- `required_capabilities` and `required_roles` are unordered sets: sorted and de-duplicated.
 - Numbers, booleans and nested objects are invalid in identity fields.
 - `null` is invalid; empty is explicit `""` or `[]`.
-- Arrays are sorted and de-duplicated.
 - Missing/invalid → `INVALID_CANONICAL_TASK` (fail closed).
 - Unknown top-level keys are rejected.
 
 **Expected tests:** missing field, null, wrong type, empty string, empty array, duplicate array
-items, nested object, unknown key, Unicode edge cases.
+items, nested object, unknown key, Unicode edge cases, `acceptance_criteria` order preservation,
+`depends_on` NFC-then-deduplicate behavior.
 
-**Founder question:** confirm Option A and the rules above.
+**Founder question:** confirm the remaining IDH-D05 sub-rules: `required_capabilities` and
+`required_roles` set semantics, and the strict type/fail-closed rules above.
 
 ---
 
@@ -191,8 +199,11 @@ items, nested object, unknown key, Unicode edge cases.
 | `planned_task_id` changed | Hash unchanged (output-only) |
 | One identity field changed meaningfully | Hash changes |
 | Object keys reordered | Same hash (canonical sort) |
-| Set elements reordered | Same hash (sort) |
-| Set duplicate removed | Same hash (deduplicate) |
+| `required_capabilities`/`required_roles` set elements reordered | Same hash (set sort) |
+| `required_capabilities`/`required_roles` duplicate removed | Same hash (set dedup) |
+| `depends_on` duplicate removed | Same hash (Founder-approved NFC-then-dedup) |
+| `acceptance_criteria` order changed | Hash changes (Founder-approved ordered list) |
+| `acceptance_criteria` duplicate removed/added | Hash changes (no dedup) |
 | Unicode NFD → NFC equivalent | Same hash (normalize) |
 | `schema_version` changed | Hash unchanged (Option A of D03) |
 

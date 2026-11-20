@@ -20,6 +20,10 @@ Only the following are recorded as Founder-approved:
 - **F1 (2026-11-18):** the Identity Hash uses exactly 9 identity fields.
 - **F2 (2026-11-18):** `schema_version = 3` is kept.
 - **F2 (2026-11-18):** no identity algorithm version is added.
+- **IDH-D05 (2026-11-20):** `acceptance_criteria` is an ordered list; the order is preserved and
+  duplicates are not removed.
+- **IDH-D05 (2026-11-20):** `depends_on` is an ordered list; NFC normalization is applied first,
+  then duplicates are removed while keeping the first occurrence.
 
 The specific names of the nine fields are **not** part of the F1/F2 approval text above.
 
@@ -47,9 +51,16 @@ No tenth field is permitted by F1, but the exact nine names above remain unverif
 
 ### 2.2 Proposed canonicalization rules
 
+Founder-approved collection behavior (see section 1):
+
+- `acceptance_criteria`: ordered list; order preserved; no de-duplication.
+- `depends_on`: ordered list; NFC normalization first, then de-duplication keeping the first
+  occurrence.
+
+Remaining proposed rules (UNVERIFIED — NOT CONFIRMED AS FOUNDER-APPROVED):
+
 - Object keys sorted in lexicographic order.
-- `acceptance_criteria`, `required_capabilities` and `depends_on` are sets: sorted and
-  de-duplicated.
+- `required_capabilities` and `required_roles` are unordered sets: sorted and de-duplicated.
 - All strings use Unicode NFC.
 - All nine keys must exist and must not be `null`.
 - Empty values are represented explicitly as `""` or `[]`.
@@ -57,8 +68,7 @@ No tenth field is permitted by F1, but the exact nine names above remain unverif
   repair.
 - `planned_task_id` is an output, not an input to the Identity Hash.
 
-Note: `risk_level` exclusion is already Founder-approved by F1. All other canonicalization rules
-above remain unverified as Founder-approved.
+Note: `risk_level` exclusion is already Founder-approved by F1.
 
 ## 3. Unresolved technical details — Founder decision required
 
