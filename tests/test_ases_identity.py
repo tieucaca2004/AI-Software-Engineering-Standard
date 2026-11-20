@@ -152,6 +152,26 @@ class IdentityValidation(unittest.TestCase):
         data["schema_version"] = 2
         self.assertInvalid(data)
 
+    def test_schema_version_integer_four_rejected(self):
+        data = sample()
+        data["schema_version"] = 4
+        self.assertInvalid(data)
+
+    def test_schema_version_float_rejected(self):
+        data = sample()
+        data["schema_version"] = 3.0
+        self.assertInvalid(data)
+
+    def test_schema_version_boolean_rejected(self):
+        data = sample()
+        data["schema_version"] = True
+        self.assertInvalid(data)
+
+    def test_schema_version_string_rejected(self):
+        data = sample()
+        data["schema_version"] = "3"
+        self.assertInvalid(data)
+
     def test_missing_schema_version_rejected(self):
         data = sample()
         del data["schema_version"]

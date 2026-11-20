@@ -62,7 +62,7 @@
     },
     {
       "path": "scripts/ases_identity.py",
-      "sha256": "d826dec2462a06d8c44e4830e93099042b4ba6f171c6729872ecc2bd726d18e6"
+      "sha256": "e680a8de5dbc7944381adeca87b33c27db52f196d7859cb04fef08ff2056f546"
     },
     {
       "path": "scripts/ases_verify.py",

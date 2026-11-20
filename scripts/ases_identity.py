@@ -146,9 +146,10 @@ def compute_identity_hash(record):
     if keys != set(RECORD_KEYS):
         raise IdentityError("INVALID_CANONICAL_TASK: identity record must contain schema_version "
                             "and exactly the nine identity fields")
-    if record["schema_version"] != SCHEMA_VERSION:
+    schema_version = record["schema_version"]
+    if type(schema_version) is not int or schema_version != SCHEMA_VERSION:
         raise IdentityError("INVALID_SCHEMA_VERSION: unsupported schema_version %r" %
-                            record["schema_version"])
+                            schema_version)
 
     normalized = {}
     for field in STRING_FIELDS:
