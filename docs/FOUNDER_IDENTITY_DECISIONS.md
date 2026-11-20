@@ -1,18 +1,22 @@
 # ASES Founder Identity Decisions — Technical Option Package
 
-**Status:** Decision package for Founder review. All “Recommended” entries are **AI proposals**, not
-Founder-approved decisions. No implementation is authorized by this document.
-
-**Related:** `docs/IDENTITY_CONTRACT.md` (provenance-corrected specification).
+**Status:** Decision package for Founder review. The unified contract is
+`docs/IDENTITY_CONTRACT.md`. Only F1, F2 and the two IDH-D05 collection rules below are
+Founder-approved; every other “Recommended” entry remains an **AI proposal**, not a Founder
+decision. No implementation is authorized by this document.
 
 ## 1. Approved decisions (authoritative)
 
-Only these are Founder-approved (2026-11-18):
+Founder-approved decisions:
 
-- **F1:** `risk_level` is excluded from the Identity Hash.
-- **F1:** the Identity Hash uses exactly 9 identity fields.
-- **F2:** `schema_version = 3` is kept.
-- **F2:** no identity algorithm version is added.
+- **F1 (2026-11-18):** `risk_level` is excluded from the Identity Hash.
+- **F1 (2026-11-18):** the Identity Hash uses exactly 9 identity fields.
+- **F2 (2026-11-18):** `schema_version = 3` is kept.
+- **F2 (2026-11-18):** no identity algorithm version is added.
+- **IDH-D05 (2026-11-20):** `acceptance_criteria` is an ordered list; order preserved; no
+  de-duplication.
+- **IDH-D05 (2026-11-20):** `depends_on` is an ordered list; NFC first, then de-duplication keeping
+  the first occurrence.
 
 ## 2. Current architecture and gaps
 
@@ -136,9 +140,10 @@ Hash is computed only over `identity`.
 | B. Custom compact JSON | Full control | Risk of unspecified escaping/whitespace rules |
 | C. Separator-joined values | Simple | Ambiguous for arrays and Unicode |
 
-**Recommended (proposal):** Option A — UTF-8 canonical JSON: no insignificant whitespace; keys
-sorted lexicographically; minimal escaping; Unicode NFC normalization before serialization; no
-trailing newline.
+**Recommended (proposal):** Option A — RFC 8785 JSON Canonicalization Scheme (JCS) with JCS key
+ordering and JCS string escaping; no insignificant whitespace; no trailing newline; Unicode NFC
+normalization is a separate pre-serialization step; output is UTF-8. Input-type restrictions are
+applied at the validation layer, not inside JCS.
 
 **Example (structured → canonical bytes):**
 
@@ -174,8 +179,10 @@ identical bytes; NFC-equivalent Unicode produces identical bytes; escaping is de
 **Recommended (proposal — remaining, not approved):** Option A with:
 
 - Allowed values: Unicode NFC strings; string arrays for `acceptance_criteria`,
-  `required_capabilities`, `required_roles`, `depends_on`.
-- `required_capabilities` and `required_roles` are unordered sets: sorted and de-duplicated.
+  `required_capabilities`, `required_roles`, `execution_constraints`, `depends_on`.
+- `required_capabilities`, `required_roles` and `execution_constraints` are unordered sets: sorted
+  and de-duplicated after NFC.
+- `acceptance_criteria` and `depends_on` use the Founder-approved collection rules above.
 - Numbers, booleans and nested objects are invalid in identity fields.
 - `null` is invalid; empty is explicit `""` or `[]`.
 - Missing/invalid → `INVALID_CANONICAL_TASK` (fail closed).
@@ -183,10 +190,11 @@ identical bytes; NFC-equivalent Unicode produces identical bytes; escaping is de
 
 **Expected tests:** missing field, null, wrong type, empty string, empty array, duplicate array
 items, nested object, unknown key, Unicode edge cases, `acceptance_criteria` order preservation,
-`depends_on` NFC-then-deduplicate behavior.
+`depends_on` NFC-then-deduplicate behavior, `execution_constraints` set normalization.
 
-**Founder question:** confirm the remaining IDH-D05 sub-rules: `required_capabilities` and
-`required_roles` set semantics, and the strict type/fail-closed rules above.
+**Founder question:** confirm the remaining IDH-D05 sub-rules: `required_capabilities`,
+`required_roles` and `execution_constraints` set semantics, and the strict type/fail-closed rules
+above.
 
 ---
 

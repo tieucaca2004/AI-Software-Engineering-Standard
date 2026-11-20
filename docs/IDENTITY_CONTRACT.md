@@ -1,41 +1,32 @@
-# ASES Task Identity Contract — Provenance-Corrected Specification
+# ASES Task Identity Contract — Final Unified Specification
 
-**Status:** Documentation only. Identity Hash implementation is **not started**.
+**Status:** Unified technical contract for Founder review. Identity Hash implementation is **not
+started**.
 **Owner:** Founder retains approval and release authority.
 
-This file separates three distinct categories of information and must not conflate them:
+This document is the single source of truth for the task-identity contract. It separates:
 
-1. **Founder-approved decisions** (F1/F2 only).
-2. **AI-recovered / proposed technical details** that have **not** been confirmed as
-   Founder-approved.
-3. **Unresolved technical details**.
+1. **FOUNDER-APPROVED** decisions.
+2. **PROPOSED — PENDING FOUNDER APPROVAL** technical details.
+3. No other categories.
 
-It does not implement hashing and does not amend `CONSTITUTION.md` or F1/F2.
-
-## 1. Founder-approved decisions — authoritative
-
-Only the following are recorded as Founder-approved:
+## 1. FOUNDER-APPROVED
 
 - **F1 (2026-11-18):** `risk_level` is excluded from the Identity Hash.
 - **F1 (2026-11-18):** the Identity Hash uses exactly 9 identity fields.
 - **F2 (2026-11-18):** `schema_version = 3` is kept.
 - **F2 (2026-11-18):** no identity algorithm version is added.
-- **IDH-D05 (2026-11-20):** `acceptance_criteria` is an ordered list; the order is preserved and
-  duplicates are not removed.
-- **IDH-D05 (2026-11-20):** `depends_on` is an ordered list; NFC normalization is applied first,
-  then duplicates are removed while keeping the first occurrence.
+- **IDH-D05 (2026-11-20):** `acceptance_criteria` is an ordered list; order is preserved; no
+  de-duplication.
+- **IDH-D05 (2026-11-20):** `depends_on` is an ordered list; NFC normalization first, then
+  de-duplication keeping the first occurrence.
 
-The specific names of the nine fields are **not** part of the F1/F2 approval text above.
+## 2. PROPOSED — PENDING FOUNDER APPROVAL
 
-## 2. AI-recovered / proposed technical details — UNVERIFIED
+The items below are final technical proposals. They are **not** Founder-approved until the Founder
+explicitly confirms them.
 
-**UNVERIFIED — NOT CONFIRMED AS FOUNDER-APPROVED.**
-
-The following were supplied during remediation as recovered technical information. They are
-retained for reference only. They have not been confirmed against an independent authoritative
-source as Founder-approved. They must not be treated as a verified Founder contract.
-
-### 2.1 Proposed identity fields (exactly nine)
+### 2.1 Identity fields (exactly nine)
 
 1. `title`
 2. `description`
@@ -47,47 +38,87 @@ source as Founder-approved. They must not be treated as a verified Founder contr
 8. `execution_constraints`
 9. `depends_on`
 
-No tenth field is permitted by F1, but the exact nine names above remain unverified.
+### 2.2 Identity semantics
 
-### 2.2 Proposed canonicalization rules
+Identity Hash represents **task content**, not a task instance. Two tasks with identical identity
+content produce the same hash regardless of task ID, assignment, `risk_level`, or
+`planned_task_id`.
 
-Founder-approved collection behavior (see section 1):
+### 2.3 Field type contract
 
-- `acceptance_criteria`: ordered list; order preserved; no de-duplication.
-- `depends_on`: ordered list; NFC normalization first, then de-duplication keeping the first
-  occurrence.
+| Field | Type | Semantics | Status |
+|---|---|---|---|
+| `title` | string | Required; NFC | PROPOSED |
+| `description` | string | Required; NFC | PROPOSED |
+| `acceptance_criteria` | string[] | Ordered list; keep order; no dedup | **FOUNDER-APPROVED** |
+| `required_capabilities` | string[] | Unordered set; sort + dedup after NFC | PROPOSED |
+| `required_roles` | string[] | Unordered set; sort + dedup after NFC | PROPOSED |
+| `scope` | string | Required; NFC | PROPOSED |
+| `expected_output` | string | Required; NFC | PROPOSED |
+| `execution_constraints` | string[] | Unordered set of independent constraints; sort + dedup after NFC | PROPOSED |
+| `depends_on` | string[] | Ordered list; NFC then dedup keeping first occurrence | **FOUNDER-APPROVED** |
 
-Remaining proposed rules (UNVERIFIED — NOT CONFIRMED AS FOUNDER-APPROVED):
+### 2.4 Validation rules
 
-- Object keys sorted in lexicographic order.
-- `required_capabilities` and `required_roles` are unordered sets: sorted and de-duplicated.
-- All strings use Unicode NFC.
-- All nine keys must exist and must not be `null`.
-- Empty values are represented explicitly as `""` or `[]`.
-- Missing, null or invalid values return `INVALID_CANONICAL_TASK`; no automatic normalization or
-  repair.
-- `planned_task_id` is an output, not an input to the Identity Hash.
+- Exactly the nine keys; no missing keys; no unknown top-level keys.
+- No `null`; no nested objects; no wrong types; string arrays contain only strings.
+- Empty `""` and empty `[]` are valid for a correctly typed field.
+- NFC normalization is applied before string comparison and collection processing.
+- Any validation error returns `INVALID_CANONICAL_TASK`; fail closed; no automatic repair beyond
+  the specified normalization steps.
 
-Note: `risk_level` exclusion is already Founder-approved by F1.
+### 2.5 Hash algorithm
 
-## 3. Unresolved technical details — Founder decision required
+- SHA-256.
+- Output: lowercase hexadecimal, exactly 64 characters.
 
-Identity hashing cannot be implemented until these are resolved:
+### 2.6 Canonical payload
 
-1. Hash algorithm.
-2. Final canonical payload structure immediately before hashing.
-3. Whether `schema_version = 3` is included in the hash payload.
-4. Byte serialization: encoding, separators and escaping.
-5. Nested-value and data-type handling.
+- The canonical payload contains only the nine identity fields.
+- It excludes `risk_level`, `planned_task_id`, and `schema_version`.
+- Identity data is stored in a **separate identity record**, not merged into the `CURRENT_TASK`
+  authorization record. The linking mechanism between the identity record and the task
+  authorization record must be defined during implementation without changing `CURRENT_TASK`
+  semantics.
 
-No values may be inferred for these items.
+### 2.7 `schema_version` behavior
+
+- `schema_version = 3` is validation-only; it is not part of the hash payload.
+- An unsupported schema version is rejected.
+- Any change to field semantics or serialization requires a migration/compatibility policy and
+  Founder approval.
+- No identity algorithm version is added.
+
+### 2.8 Canonical serialization
+
+1. NFC-normalize every string before serialization.
+2. Serialize the nine-field object using **RFC 8785 JSON Canonicalization Scheme (JCS)** with
+   JCS key ordering, JCS string escaping, no insignificant whitespace, and no trailing newline.
+3. Encode as UTF-8.
+4. Do not modify the JCS algorithm. Input-type restrictions are applied at the validation layer,
+   not inside serialization. Do not claim RFC 8785 compliance unless the implementation satisfies
+   RFC 8785.
+
+## 3. Hash flow
+
+1. Receive the Task Identity Record.
+2. Validate `schema_version` (`3`).
+3. Validate the nine fields, keys and types.
+4. NFC-normalize all strings.
+5. Apply per-field collection semantics.
+6. Build an object containing only the nine identity fields.
+7. Canonicalize with RFC 8785 JCS.
+8. Encode UTF-8.
+9. Compute `SHA-256` over the canonical bytes.
+10. Emit a lowercase 64-character hexadecimal digest.
+
+Any validation error stops before hashing.
 
 ## 4. Relationship to the existing repository
 
-- `scripts/ases_gate.py` contains `IDENTITY_FIELDS` for **project** identity (`Project name`,
-  `Project ID`, `Repository`, `Primary branch`, `Owner`). Those are unrelated to this **task**
-  identity contract and are not a conflict.
-- The repository currently has no identity hash implementation.
+- `scripts/ases_gate.py` `IDENTITY_FIELDS` are **project** identity fields, unrelated to task
+  identity.
+- The repository currently has no identity-hash implementation.
 - `CONSTITUTION.md` is unchanged.
 - F1/F2 are unchanged.
 - The UAM MVP remains exactly five components.

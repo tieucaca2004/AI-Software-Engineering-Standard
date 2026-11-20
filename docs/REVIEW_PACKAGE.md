@@ -145,27 +145,21 @@ creation in the local environment. Windows junction rejection is tested and pass
 
 ## 4. F1/F2 contract status
 
-**Founder-approved (2026-11-18):**
+**Founder-approved:**
 
-- F1: `risk_level` is excluded from the Identity Hash; the hash uses exactly 9 identity fields.
-- F2: `schema_version = 3` is kept; no identity algorithm version is added.
+- F1 (2026-11-18): `risk_level` is excluded from the Identity Hash; the hash uses exactly 9
+  identity fields.
+- F2 (2026-11-18): `schema_version = 3` is kept; no identity algorithm version is added.
+- IDH-D05 (2026-11-20): `acceptance_criteria` ordered list, keep order, no dedup.
+- IDH-D05 (2026-11-20): `depends_on` ordered list, NFC first then dedup keeping first occurrence.
 
-**AI-recovered technical details (UNVERIFIED — NOT CONFIRMED AS FOUNDER-APPROVED):**
+**Proposed — pending Founder approval:** the unified technical contract in
+`docs/IDENTITY_CONTRACT.md` still awaits approval of IDH-FIELDS, IDH-SEMANTICS, IDH-D01, IDH-D02,
+IDH-D03, IDH-D04, and the remaining IDH-D05 rules (`required_capabilities`, `required_roles`,
+`execution_constraints`, strict type/fail-closed validation).
 
-A proposed nine-field list and proposed canonicalization rules are retained for reference in
-`docs/IDENTITY_CONTRACT.md`. They are **not** verified as Founder-approved and must not be treated
-as an implementation-ready contract.
-
-**Unresolved (block implementation):**
-
-- hash algorithm;
-- final canonical payload structure;
-- whether `schema_version = 3` participates in the hash payload;
-- byte serialization (encoding, separators, escaping);
-- nested-value and data-type handling.
-
-Identity Hash implementation remains **BLOCKED** until the technical contract is complete and
-confirmed. No identity hashing is implemented. No substitute contract was invented.
+Identity Hash implementation remains **BLOCKED** until the remaining contract items are confirmed.
+No identity hashing is implemented. No substitute contract was invented.
 
 ## 5. Review outcome handling
 
