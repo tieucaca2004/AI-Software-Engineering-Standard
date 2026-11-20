@@ -145,16 +145,23 @@ creation in the local environment. Windows junction rejection is tested and pass
 
 ## 4. F1/F2 contract status
 
-The Founder decisions are approved, but the technical contract is absent from:
+A partial contract has been recovered and documented in `docs/IDENTITY_CONTRACT.md`:
 
-- the repository tree, all branches, tags and Git history;
-- PR descriptions, reviews, review comments, issue comments and commit comments;
-- GitHub issues, releases and tags;
-- DSH sessions, storages, persistent instructions and caches;
-- `D:\AI` project records and accessible user documents.
+- Exactly nine identity fields are listed.
+- Recovered canonicalization rules: lexicographic key order; set sort and de-duplication;
+  Unicode NFC; all nine keys required and non-null; explicit empty `""`/`[]`; missing/null/invalid
+  fail closed as `INVALID_CANONICAL_TASK`; `risk_level` excluded; `planned_task_id` is output-only.
+- `schema_version = 3` is preserved with no identity algorithm version.
 
-No `risk_level`, nine-field identity list or `schema_version = 3` record was found. The exact
-missing contract is listed in the final completion report. No substitute schema was invented.
+The following remain unresolved and block implementation:
+
+- hash algorithm;
+- final canonical payload structure;
+- whether `schema_version = 3` participates in the hash payload;
+- byte serialization (encoding, separators, escaping);
+- nested value and type handling.
+
+No identity hashing is implemented. No substitute contract was invented.
 
 ## 5. Review outcome handling
 
