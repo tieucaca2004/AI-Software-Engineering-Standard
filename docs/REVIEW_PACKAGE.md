@@ -145,23 +145,27 @@ creation in the local environment. Windows junction rejection is tested and pass
 
 ## 4. F1/F2 contract status
 
-A partial contract has been recovered and documented in `docs/IDENTITY_CONTRACT.md`:
+**Founder-approved (2026-11-18):**
 
-- Exactly nine identity fields are listed.
-- Recovered canonicalization rules: lexicographic key order; set sort and de-duplication;
-  Unicode NFC; all nine keys required and non-null; explicit empty `""`/`[]`; missing/null/invalid
-  fail closed as `INVALID_CANONICAL_TASK`; `risk_level` excluded; `planned_task_id` is output-only.
-- `schema_version = 3` is preserved with no identity algorithm version.
+- F1: `risk_level` is excluded from the Identity Hash; the hash uses exactly 9 identity fields.
+- F2: `schema_version = 3` is kept; no identity algorithm version is added.
 
-The following remain unresolved and block implementation:
+**AI-recovered technical details (UNVERIFIED — NOT CONFIRMED AS FOUNDER-APPROVED):**
+
+A proposed nine-field list and proposed canonicalization rules are retained for reference in
+`docs/IDENTITY_CONTRACT.md`. They are **not** verified as Founder-approved and must not be treated
+as an implementation-ready contract.
+
+**Unresolved (block implementation):**
 
 - hash algorithm;
 - final canonical payload structure;
 - whether `schema_version = 3` participates in the hash payload;
 - byte serialization (encoding, separators, escaping);
-- nested value and type handling.
+- nested-value and data-type handling.
 
-No identity hashing is implemented. No substitute contract was invented.
+Identity Hash implementation remains **BLOCKED** until the technical contract is complete and
+confirmed. No identity hashing is implemented. No substitute contract was invented.
 
 ## 5. Review outcome handling
 

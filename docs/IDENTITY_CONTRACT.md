@@ -1,14 +1,37 @@
-# ASES Task Identity Contract — Recovered Specification
+# ASES Task Identity Contract — Provenance-Corrected Specification
 
-**Status:** Documentation only. Identity hash implementation is **not started**.
-**Source:** Founder-provided contract recovery (2026-11-20 remediation); F1/F2 approved 2026-11-18.
+**Status:** Documentation only. Identity Hash implementation is **not started**.
 **Owner:** Founder retains approval and release authority.
 
-This file records the recovered task-identity contract and its canonicalization rules. It
-separates recovered items from the technical details that remain unresolved. It does not implement
-hashing and does not amend the Constitution or F1/F2.
+This file separates three distinct categories of information and must not conflate them:
 
-## 1. Identity fields — exactly nine
+1. **Founder-approved decisions** (F1/F2 only).
+2. **AI-recovered / proposed technical details** that have **not** been confirmed as
+   Founder-approved.
+3. **Unresolved technical details**.
+
+It does not implement hashing and does not amend `CONSTITUTION.md` or F1/F2.
+
+## 1. Founder-approved decisions — authoritative
+
+Only the following are recorded as Founder-approved:
+
+- **F1 (2026-11-18):** `risk_level` is excluded from the Identity Hash.
+- **F1 (2026-11-18):** the Identity Hash uses exactly 9 identity fields.
+- **F2 (2026-11-18):** `schema_version = 3` is kept.
+- **F2 (2026-11-18):** no identity algorithm version is added.
+
+The specific names of the nine fields are **not** part of the F1/F2 approval text above.
+
+## 2. AI-recovered / proposed technical details — UNVERIFIED
+
+**UNVERIFIED — NOT CONFIRMED AS FOUNDER-APPROVED.**
+
+The following were supplied during remediation as recovered technical information. They are
+retained for reference only. They have not been confirmed against an independent authoritative
+source as Founder-approved. They must not be treated as a verified Founder contract.
+
+### 2.1 Proposed identity fields (exactly nine)
 
 1. `title`
 2. `description`
@@ -20,31 +43,32 @@ hashing and does not amend the Constitution or F1/F2.
 8. `execution_constraints`
 9. `depends_on`
 
-No tenth field is permitted.
+No tenth field is permitted by F1, but the exact nine names above remain unverified.
 
-## 2. Canonicalization rules — recovered
+### 2.2 Proposed canonicalization rules
 
-- Object keys are sorted in lexicographic order.
+- Object keys sorted in lexicographic order.
 - `acceptance_criteria`, `required_capabilities` and `depends_on` are sets: sorted and
   de-duplicated.
 - All strings use Unicode NFC.
-- All nine keys must be present and must not be `null`.
-- Empty values must be represented explicitly as `""` or `[]`.
-- Missing, null or invalid values return `INVALID_CANONICAL_TASK`. No automatic normalization or
-  repair is performed.
-- `risk_level` is excluded from the Identity Hash; it is for display/audit only.
+- All nine keys must exist and must not be `null`.
+- Empty values are represented explicitly as `""` or `[]`.
+- Missing, null or invalid values return `INVALID_CANONICAL_TASK`; no automatic normalization or
+  repair.
 - `planned_task_id` is an output, not an input to the Identity Hash.
-- `schema_version = 3` must be preserved; no identity algorithm version is added.
+
+Note: `risk_level` exclusion is already Founder-approved by F1. All other canonicalization rules
+above remain unverified as Founder-approved.
 
 ## 3. Unresolved technical details — Founder decision required
 
-The following are not yet specified and therefore identity hashing cannot be implemented:
+Identity hashing cannot be implemented until these are resolved:
 
 1. Hash algorithm.
 2. Final canonical payload structure immediately before hashing.
 3. Whether `schema_version = 3` is included in the hash payload.
 4. Byte serialization: encoding, separators and escaping.
-5. Nested value and type handling.
+5. Nested-value and data-type handling.
 
 No values may be inferred for these items.
 
