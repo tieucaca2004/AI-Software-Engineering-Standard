@@ -1,9 +1,9 @@
 # ASES Founder Identity Decisions — Technical Option Package
 
-**Status:** Decision package for Founder review. The unified contract is
-`docs/IDENTITY_CONTRACT.md`. Only F1, F2 and the two IDH-D05 collection rules below are
-Founder-approved; every other “Recommended” entry remains an **AI proposal**, not a Founder
-decision. No implementation is authorized by this document.
+**Status:** Historical decision package. The unified contract is `docs/IDENTITY_CONTRACT.md`.
+Every decision in this package has since been **Founder-approved** (the full contract was frozen at
+commit `73f392a`). Section 2 below describes the **pre-implementation baseline** and is preserved
+for provenance; it does not describe the current implementation.
 
 ## 1. Approved decisions (authoritative)
 
@@ -17,8 +17,14 @@ Founder-approved decisions:
   de-duplication.
 - **IDH-D05 (2026-11-20):** `depends_on` is an ordered list; NFC first, then de-duplication keeping
   the first occurrence.
+- **IDH-FIELDS, IDH-SEMANTICS, IDH-D01–D05 (2026-11-20):** approved in full when the contract was
+  frozen at `73f392a`.
 
 ## 2. Current architecture and gaps
+
+> **Historical (pre-implementation baseline).** This section describes the repository before the
+> Identity Hash implementation. The current implementation is in `scripts/ases_identity.py`,
+> `templates/TASK_IDENTITY.json` and `tests/test_ases_identity.py`.
 
 ### Current implementation behavior
 
@@ -44,6 +50,10 @@ Founder-approved decisions:
 4. No identity invariance or negative tests exist.
 
 ## 3. Decision items
+
+> Each item below was decided by the Founder when the contract was frozen at `73f392a`; the
+> recommended options are now **FOUNDER-APPROVED**. The original “Recommended (proposal)” wording
+> is retained to preserve the decision-package history.
 
 Each item has a unique ID, options, a recommendation (proposal), an example, expected tests and
 the question for the Founder.

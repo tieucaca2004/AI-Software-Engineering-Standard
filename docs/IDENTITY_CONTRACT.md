@@ -9,13 +9,10 @@ acceptance only; it does not approve the whole ASES standard or release `VERSION
 
 **Owner:** Founder retains approval and release authority.
 
-This document is the single source of truth for the task-identity contract. It separates:
+This document is the single source of truth for the task-identity contract. Every decision below
+is **FOUNDER-APPROVED**; no item remains proposed or pending.
 
-1. **FOUNDER-APPROVED** decisions.
-2. **PROPOSED — PENDING FOUNDER APPROVAL** technical details.
-3. No other categories.
-
-## 1. FOUNDER-APPROVED
+## 1. FOUNDER-APPROVED decisions
 
 - **F1 (2026-11-18):** `risk_level` is excluded from the Identity Hash.
 - **F1 (2026-11-18):** the Identity Hash uses exactly 9 identity fields.
@@ -25,11 +22,19 @@ This document is the single source of truth for the task-identity contract. It s
   de-duplication.
 - **IDH-D05 (2026-11-20):** `depends_on` is an ordered list; NFC normalization first, then
   de-duplication keeping the first occurrence.
+- **IDH-FIELDS (2026-11-20):** the nine identity field names.
+- **IDH-SEMANTICS (2026-11-20):** Identity Hash represents task content, not a task instance.
+- **IDH-D01 (2026-11-20):** SHA-256, lowercase 64-hex output.
+- **IDH-D02 (2026-11-20):** canonical payload contains only the nine identity fields; identity data
+  lives in a separate record, not in `CURRENT_TASK`.
+- **IDH-D03 (2026-11-20):** `schema_version = 3` is validation-only and is not hashed.
+- **IDH-D04 (2026-11-20):** NFC normalization, then RFC 8785 JCS canonical JSON, UTF-8.
+- **IDH-D05 (2026-11-20):** remaining collection and validation rules below.
 
-## 2. PROPOSED — PENDING FOUNDER APPROVAL
+The full contract was frozen by the Founder in the "IMPLEMENT IDENTITY HASH" authorization at
+commit `73f392a`.
 
-The items below are final technical proposals. They are **not** Founder-approved until the Founder
-explicitly confirms them.
+## 2. Approved contract details
 
 ### 2.1 Identity fields (exactly nine)
 
@@ -51,17 +56,17 @@ content produce the same hash regardless of task ID, assignment, `risk_level`, o
 
 ### 2.3 Field type contract
 
-| Field | Type | Semantics | Status |
-|---|---|---|---|
-| `title` | string | Required; NFC | PROPOSED |
-| `description` | string | Required; NFC | PROPOSED |
-| `acceptance_criteria` | string[] | Ordered list; keep order; no dedup | **FOUNDER-APPROVED** |
-| `required_capabilities` | string[] | Unordered set; sort + dedup after NFC | PROPOSED |
-| `required_roles` | string[] | Unordered set; sort + dedup after NFC | PROPOSED |
-| `scope` | string | Required; NFC | PROPOSED |
-| `expected_output` | string | Required; NFC | PROPOSED |
-| `execution_constraints` | string[] | Unordered set of independent constraints; sort + dedup after NFC | PROPOSED |
-| `depends_on` | string[] | Ordered list; NFC then dedup keeping first occurrence | **FOUNDER-APPROVED** |
+| Field | Type | Semantics |
+|---|---|---|
+| `title` | string | Required; NFC |
+| `description` | string | Required; NFC |
+| `acceptance_criteria` | string[] | Ordered list; keep order; no dedup |
+| `required_capabilities` | string[] | Unordered set; sort + dedup after NFC |
+| `required_roles` | string[] | Unordered set; sort + dedup after NFC |
+| `scope` | string | Required; NFC |
+| `expected_output` | string | Required; NFC |
+| `execution_constraints` | string[] | Unordered set of independent constraints; sort + dedup after NFC |
+| `depends_on` | string[] | Ordered list; NFC then dedup keeping first occurrence |
 
 ### 2.4 Validation rules
 
@@ -83,8 +88,7 @@ content produce the same hash regardless of task ID, assignment, `risk_level`, o
 - It excludes `risk_level`, `planned_task_id`, and `schema_version`.
 - Identity data is stored in a **separate identity record**, not merged into the `CURRENT_TASK`
   authorization record. The linking mechanism between the identity record and the task
-  authorization record must be defined during implementation without changing `CURRENT_TASK`
-  semantics.
+  authorization record is implemented without changing `CURRENT_TASK` semantics.
 
 ### 2.7 `schema_version` behavior
 
@@ -128,5 +132,4 @@ Any validation error stops before hashing.
 - `ases_gate.py check --identity <file>` validates the record and reports its identity hash without
   altering `CURRENT_TASK`.
 - `CONSTITUTION.md` is unchanged.
-- F1/F2 are unchanged.
 - The UAM MVP remains exactly five components.

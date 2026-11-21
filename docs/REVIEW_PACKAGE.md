@@ -152,10 +152,13 @@ creation locally; Windows junction rejection is tested and passes.
 
 ## 4. Identity status
 
-- F1, F2 and IDH-D05 collection rules are Founder-approved.
+- F1 and F2 (2026-11-18) are Founder-approved.
+- The full Identity Hash contract — IDH-FIELDS, IDH-SEMANTICS, IDH-D01 through IDH-D04, and all
+  remaining IDH-D05 rules — is Founder-approved (contract frozen at `73f392a`).
 - Identity Hash is implemented and passed G6 Founder Acceptance (feature-level).
-- RFC 8785 JCS compliance fix is included.
-- G6 acceptance does not approve the whole ASES or release `VERSION 1.1.0`.
+- RFC 8785 JCS compliance fix and the `schema_version` integer-type fix are included.
+- G6 acceptance is feature-level only; it does not approve the whole ASES or release
+  `VERSION 1.1.0`.
 
 ## 5. Review outcome handling
 
