@@ -55,8 +55,8 @@ Founder-approved decisions:
 > recommended options are now **FOUNDER-APPROVED**. The original “Recommended (proposal)” wording
 > is retained to preserve the decision-package history.
 
-Each item has a unique ID, options, a recommendation (proposal), an example, expected tests and
-the question for the Founder.
+Each item lists its historical options, the approved decision, an example, expected tests and the
+superseded question.
 
 ### IDH-D01 — Hash algorithm
 
@@ -68,7 +68,7 @@ the question for the Founder.
 | BLAKE2b-256 | Fast, modern | Less tooling familiarity; no need over SHA-256 |
 | SHA3-256 | Sponge-based alternative | Slower; unnecessary divergence |
 
-**Recommended (proposal):** SHA-256, lowercase 64-hex output.
+**Decision (Founder-approved at `73f392a`):** SHA-256, lowercase 64-hex output.
 
 **Example:**
 
@@ -78,7 +78,7 @@ identity_hash = sha256(canonical_bytes)
 
 **Expected tests:** same input → same digest; known-vector test; deterministic output.
 
-**Founder question:** confirm SHA-256.
+**Historical question (superseded):** confirm SHA-256.
 
 ---
 
@@ -92,13 +92,12 @@ identity_hash = sha256(canonical_bytes)
 | B. Wrap the 9 fields with metadata | Explicit container | Adds fields beyond the 9 unless carefully separated |
 | C. Include `planned_task_id` | Immutable binding | Violates F1 semantics if treated as identity input |
 
-**Recommended (proposal):** Option A — a canonical JSON object containing only the nine identity
+**Decision (Founder-approved at `73f392a`):** Option A — a canonical JSON object containing only the nine identity
 fields, sorted lexicographically by key. `risk_level` and `planned_task_id` are excluded from the
 object. `schema_version` is handled by IDH-D03.
 
-**Open prerequisite:** the source of the nine fields must be decided. Current `CURRENT_TASK`
-fields differ from the proposed nine; the Founder must choose whether the identity record extends
-`CURRENT_TASK`, becomes a new record, or is otherwise supplied.
+**Resolved:** the nine fields are stored in a separate record — `templates/TASK_IDENTITY.json` —
+not in `CURRENT_TASK`.
 
 **Example (values illustrative):**
 
@@ -109,7 +108,7 @@ fields differ from the proposed nine; the Founder must choose whether the identi
 
 **Expected tests:** all nine keys present; extra key handling; ordering independence.
 
-**Founder question:** confirm Option A and choose where the nine fields are sourced.
+**Historical question (superseded):** confirm Option A and choose where the nine fields are sourced.
 
 ---
 
@@ -122,7 +121,7 @@ fields differ from the proposed nine; the Founder must choose whether the identi
 | A. Exclude from hash; validate only (recommended) | Hash remains exactly 9 fields; schema can evolve without invalidating identity | Weakens binding of an identity to a specific schema |
 | B. Include in hash | Strong schema binding | Adds a tenth hash input, conflicting with F1 “exactly 9 fields” |
 
-**Recommended (proposal):** Option A. Store `schema_version = 3` as record metadata used for
+**Decision (Founder-approved at `73f392a`):** Option A. Store `schema_version = 3` as record metadata used for
 validation, not as hash input.
 
 **Example:**
@@ -136,7 +135,7 @@ Hash is computed only over `identity`.
 **Expected tests:** changing `schema_version` does not change the hash; an unsupported
 `schema_version` is rejected by validation.
 
-**Founder question:** confirm Option A.
+**Historical question (superseded):** confirm Option A.
 
 ---
 
@@ -150,7 +149,7 @@ Hash is computed only over `identity`.
 | B. Custom compact JSON | Full control | Risk of unspecified escaping/whitespace rules |
 | C. Separator-joined values | Simple | Ambiguous for arrays and Unicode |
 
-**Recommended (proposal):** Option A — RFC 8785 JSON Canonicalization Scheme (JCS) with JCS key
+**Decision (Founder-approved at `73f392a`):** Option A — RFC 8785 JSON Canonicalization Scheme (JCS) with JCS key
 ordering and JCS string escaping; no insignificant whitespace; no trailing newline; Unicode NFC
 normalization is a separate pre-serialization step; output is UTF-8. Input-type restrictions are
 applied at the validation layer, not inside JCS.
@@ -166,7 +165,7 @@ Text:    {"scope":"s","title":"t"}
 **Expected tests:** whitespace variations produce identical bytes; key-order variations produce
 identical bytes; NFC-equivalent Unicode produces identical bytes; escaping is deterministic.
 
-**Founder question:** confirm RFC 8785 subset and UTF-8.
+**Historical question (superseded):** confirm RFC 8785 subset and UTF-8.
 
 ---
 
@@ -186,7 +185,7 @@ identical bytes; NFC-equivalent Unicode produces identical bytes; escaping is de
 - `depends_on` is an **ordered list**: NFC normalization first, then de-duplication keeping the
   first occurrence.
 
-**Recommended (proposal — remaining, not approved):** Option A with:
+**Decision (Founder-approved at `73f392a`):** Option A with:
 
 - Allowed values: Unicode NFC strings; string arrays for `acceptance_criteria`,
   `required_capabilities`, `required_roles`, `execution_constraints`, `depends_on`.
@@ -202,7 +201,7 @@ identical bytes; NFC-equivalent Unicode produces identical bytes; escaping is de
 items, nested object, unknown key, Unicode edge cases, `acceptance_criteria` order preservation,
 `depends_on` NFC-then-deduplicate behavior, `execution_constraints` set normalization.
 
-**Founder question:** confirm the remaining IDH-D05 sub-rules: `required_capabilities`,
+**Historical question (superseded):** confirm the remaining IDH-D05 sub-rules: `required_capabilities`,
 `required_roles` and `execution_constraints` set semantics, and the strict type/fail-closed rules
 above.
 
@@ -233,17 +232,20 @@ above.
 4. **Invalid input:** missing/null/wrong-type → fail closed.
 5. **Canonical equivalence:** key order, set order, NFC/NFD equivalence → correct per contract.
 
-These become executable tests only after Phase C/D and after the Founder approves D01–D05.
+These scenarios are now implemented and covered by tests in `tests/test_ases_identity.py`.
 
-## 6. Founder questions
+## 6. Historical Founder questions (superseded)
 
-- IDH-D01: confirm SHA-256.
-- IDH-D02: confirm hash-only-9-fields payload and choose the field source.
-- IDH-D03: confirm `schema_version = 3` is validation-only, not hash input.
-- IDH-D04: confirm RFC 8785-subset canonical JSON, UTF-8, NFC.
-- IDH-D05: confirm strict scalar/string-array rules and fail-closed behavior.
+The questions below were answered when the Founder approved the full contract at `73f392a`:
 
-## 7. Stop condition
+- IDH-D01: confirm SHA-256. → **Approved.**
+- IDH-D02: confirm hash-only-9-fields payload and choose the field source. → **Approved** (separate `TASK_IDENTITY.json`).
+- IDH-D03: confirm `schema_version = 3` is validation-only, not hash input. → **Approved.**
+- IDH-D04: confirm RFC 8785-subset canonical JSON, UTF-8, NFC. → **Approved.**
+- IDH-D05: confirm strict scalar/string-array rules and fail-closed behavior. → **Approved.**
 
-No code, schema, manifest or hash implementation is authorized until the Founder selects and
-approves the IDH decisions above.
+## 7. Stop condition (historical, superseded)
+
+The original stop condition was: no code, schema, manifest or hash implementation is authorized
+until the Founder selects and approves the IDH decisions above. That condition was satisfied when
+the Founder approved the full contract at `73f392a`; implementation has since been completed.

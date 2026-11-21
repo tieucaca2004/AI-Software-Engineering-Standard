@@ -3,7 +3,7 @@
 **Status:** Prepared for independent human review. This document is not a review, approval, acceptance or merge authorization.
 
 **Baseline (current):**
-- PR #1 head: `2ed3683` (branch `uam-mvp`, 19 commits).
+- PR #1 head: `646c29b` (branch `uam-mvp`, 22 commits).
 - PR #1 base: `main` at `6cffc35` (after PR #2 CODEOWNERS merge).
 - PR #2: **MERGED** — `.github/CODEOWNERS` is now on `main`.
 
@@ -19,9 +19,9 @@ PR #1 without relying on the author's summary.
 
 ### 2.1 Scope
 
-- Branch: `uam-mvp` (head `2ed3683`).
+- Branch: `uam-mvp` (head `646c29b`).
 - Base: `main` at `6cffc35`.
-- 19 commits from `1bf57ce` through `2ed3683`.
+- 22 commits from `1bf57ce` through `646c29b` (35 changed files, +4,750 / −123).
 - No merge, approval or Founder acceptance is claimed for PR #1 itself.
 
 ### 2.2 Change map
@@ -68,7 +68,7 @@ PR #1 without relying on the author's summary.
 
 Command: `python -m unittest discover -s tests -q`
 
-Result at `2ed3683`:
+Result at `646c29b`:
 
 ```text
 Ran 127 tests in 40.263s
@@ -89,17 +89,18 @@ Key coverage:
 | Approval record cannot be self-declared | `ApprovalRecord` |
 | Adapters require governance | `test_adapters.py` |
 | Repository policy/Constitution intact | `test_policy.py` |
-| Identity validation, canonicalization, hash | `test_ases_identity.py` (25 tests) |
+| Identity validation, canonicalization, hash | `test_ases_identity.py` (29 tests) |
 | JCS key ordering, escaping, UTF-8 | `test_ases_identity.py` |
+| schema_version integer type validation | `test_ases_identity.py` |
 
 The single skip is `test_symlink_in_snapshot_rejected` because Windows did not permit symlink
 creation locally; Windows junction rejection is tested and passes.
 
 ### 2.6 CI evidence
 
-- Latest run for `2ed3683`: `ASES policy files` check — success
-  ([run 44765961745](https://github.com/tieucaca2004/AI-Software-Engineering-Standard/actions/runs/44765961745)).
-- Earlier green runs exist for `7a569fb` and prior commits.
+- Latest run for `646c29b`: `ASES policy files` check — success
+  ([run 44854256098](https://github.com/tieucaca2004/AI-Software-Engineering-Standard/actions/runs/44854256098)).
+- Earlier green runs exist for `7a569fb`, `6ff8b00` and prior commits.
 - Required check: `ASES policy files`.
 - Workflow steps: policy check, preflight, manifest check, full tests.
 
