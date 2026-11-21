@@ -7,7 +7,16 @@ if ($env:MOCK_SLEEP_SECONDS) { Start-Sleep -Seconds ([int]$env:MOCK_SLEEP_SECOND
 $login = if ($env:MOCK_LOGIN) { $env:MOCK_LOGIN } else { 'chautinhtinh3979' }
 
 if ($Sub -eq 'api' -and $Arg2 -eq 'user') {
+    if ($env:MOCK_AUTH_FAIL -eq '401') {
+        Write-Output 'gh: Bad credentials (HTTP 401)'
+        exit 1
+    }
     Write-Output ('{"login":"' + $login + '"}')
+    exit 0
+}
+
+if ($Sub -eq 'expiry') {
+    if ($env:MOCK_TOKEN_EXPIRY) { Write-Output $env:MOCK_TOKEN_EXPIRY } else { Write-Output '' }
     exit 0
 }
 

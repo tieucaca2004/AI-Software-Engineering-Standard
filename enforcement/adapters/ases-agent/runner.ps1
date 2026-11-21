@@ -67,7 +67,11 @@ if ($PSBoundParameters.ContainsKey('TestPat')) {
     Write-Host "request : SHA-256 $requestSha"
     Write-Host "Enter PAT (empty/close/Ctrl+C = cancel):" -ForegroundColor Yellow
     $securePat = Read-Host -AsSecureString
-    if (-not $securePat -or $securePat.Length -eq 0) { if (Test-Path -LiteralPath $claimPath) { try { Remove-Item -LiteralPath $claimPath -Force } catch {} }; exit 40 }
+}
+if (-not $securePat -or $securePat.Length -eq 0) {
+    Write-Result 'CANCELED' 'AUTH_MISSING' $null 'OK'
+    if (Test-Path -LiteralPath $claimPath) { try { Remove-Item -LiteralPath $claimPath -Force } catch {} }
+    exit 40
 }
 $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePat)
 try { $pat = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) } finally { [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
@@ -89,17 +93,45 @@ $fs.Flush($true); $fs.Close()   # FlushFileBuffers
 
 # ---- Identity verify (§7.6) ----
 $ghCmd = if ($UseMockGh) { (Join-Path $root 'mock-gh.ps1') } else { 'gh' }
-$who = $null
-if ($UseMockGh) {
-    $who = & powershell -NoProfile -File $ghCmd 'api' 'user' 2>&1 | Out-String | ConvertFrom-Json
+$ghUserOut = if ($UseMockGh) {
+    & powershell -NoProfile -File $ghCmd 'api' 'user' 2>&1 | Out-String
 } else {
-    $who = (& gh api user 2>&1 | Out-String | ConvertFrom-Json)
+    & gh api user 2>&1 | Out-String
 }
+$ghUserCode = $LASTEXITCODE
+if ($ghUserCode -ne 0) {
+    if ($ghUserOut -match '401' -or $ghUserOut -match 'Bad credentials') {
+        Write-Result 'FAILED' 'AUTH_INVALID' $null 'OK'
+    } else {
+        Write-Result 'FAILED' 'GITHUB_5XX' $null 'OK'
+    }
+    foreach ($p in @($claimPath, $intentPath)) { if (Test-Path -LiteralPath $p) { try { Remove-Item -LiteralPath $p -Force } catch {} } }
+    if (Test-Path -LiteralPath $tmpCfg) { try { Remove-Item -LiteralPath $tmpCfg -Recurse -Force } catch {} }
+    exit 42
+}
+$who = $ghUserOut | ConvertFrom-Json
 if ($who.login -ne $policy.identity.login) {
     Write-Result 'FAILED' 'IDENTITY_MISMATCH' $null 'OK'
     foreach ($p in @($claimPath, $intentPath)) { if (Test-Path -LiteralPath $p) { try { Remove-Item -LiteralPath $p -Force } catch {} } }
     if (Test-Path -LiteralPath $tmpCfg) { try { Remove-Item -LiteralPath $tmpCfg -Recurse -Force } catch {} }
     exit 41
+}
+
+# ---- Token expiry warning (T21) ----
+$expiryRaw = if ($UseMockGh) {
+    (& powershell -NoProfile -File $ghCmd 'expiry' 2>&1 | Out-String).Trim()
+} else {
+    $hdr = (& gh api user --include 2>&1 | Out-String)
+    if ($hdr -match 'github-authentication-token-expiration:\s*([^\s]+)') { $Matches[1] } else { '' }
+}
+if ($expiryRaw) {
+    try {
+        $expDt = [datetime]::Parse($expiryRaw).ToUniversalTime()
+        $daysLeft = ($expDt - (Get-Date).ToUniversalTime()).TotalDays
+        if ($daysLeft -le 14) { Write-Output ("WARNING: token expires in {0} days ({1})" -f [int][math]::Floor($daysLeft), $expDt.ToString('yyyy-MM-dd')) }
+    } catch { Write-Output 'WARNING: token expiry metadata unreadable' }
+} else {
+    Write-Output 'WARNING: token expiry metadata unavailable'
 }
 
 # ---- Execute the single operation (§8) ----
