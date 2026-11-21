@@ -21,9 +21,10 @@ the Founder explicitly accepts it.
 - `docs/PROJECT_ADOPTION.md` — the authoritative adoption and upgrade procedure.
 - `docs/UAM.md` — the Universal Adoption Mechanism (UAM) MVP reference.
 - `enforcement/` — instructions for supported AI coding tools.
-- `templates/` — project context, current task, approval, milestone, change and compliance records.
+- `templates/` — project context, current task, task identity, approval, milestone, change and compliance records.
 - `scripts/ases_verify.py` — offline, read-only snapshot/lock/approval verifier.
 - `scripts/ases_gate.py` — offline project-context and task-entry governance gate.
+- `scripts/ases_identity.py` — task Identity Hash (validation, canonicalization, SHA-256).
 - `ases-manifest.json` — SHA-256 manifest of the ASES-managed snapshot.
 - `tests/` — unit, CLI, adapter and policy tests.
 - `.github/workflows/` — CI validation of policy, manifest and tests.

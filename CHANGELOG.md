@@ -21,6 +21,10 @@
   unexpected empty directories inside the snapshot are detected.
 - Added CI governance tests and an adopted-project workflow template
   (`templates/ases-governance.yml`).
+- Added task Identity Hash (`scripts/ases_identity.py`, `templates/TASK_IDENTITY.json`): exactly
+  nine identity fields, NFC normalization, RFC 8785 JCS canonical serialization and SHA-256,
+  integrated into `ases_gate.py` via `--identity` without weakening the current-task authorization
+  gate.
 - The Constitution is unchanged at ASES Constitution 1.0. This release adds enforcement
   tooling and documentation; it does not amend the Constitution.
 
