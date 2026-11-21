@@ -1,0 +1,13 @@
+{
+  "schema": "ases-agent-policy/1",
+  "identity": { "login": "chautinhtinh3979" },
+  "repo": "tieucaca2004/AI-Software-Engineering-Standard",
+  "allowlist": ["whoami", "repo-permissions", "pr-list", "pr-view", "pr-checks", "pr-create"],
+  "pr_create_authorized": false,
+  "request_ttl_minutes": 10,
+  "pat_input_timeout_seconds": 300,
+  "orphan_lock_minutes": 15,
+  "result_retention_minutes": 10,
+  "execution_timeout_minutes": 10,
+  "expected_policy_sha256": "PLACEHOLDER_RECOMPUTED_AT_RUNTIME"
+}
