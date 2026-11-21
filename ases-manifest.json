@@ -1,0 +1,108 @@
+{
+  "schema": "ases-manifest/1",
+  "ases_version": "1.1.0",
+  "canonicalization": "text-lf-v1",
+  "hash_algorithm": "sha256",
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "sha256": "cd40ecfff4c0c3f26624f10730cf27d9c8440a5861d4f7b644ee07a0f4d4edeb"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "c0f9d949f5f14218d737bb2803b554c410978c27fd474e7f0c804b136455412e"
+    },
+    {
+      "path": "CLAUDE.md",
+      "sha256": "a937fd706df4bb68e570c2caebf295aac095fd03ac01925f20c137fc5475e4b5"
+    },
+    {
+      "path": "CONSTITUTION.md",
+      "sha256": "bf3fef6fc8f6323d30d76f90b94c64851f3d03a99a7de9a097772191dc1d0982"
+    },
+    {
+      "path": "VERSION",
+      "sha256": "1575e1af4a95f12f70b4ee6a6adce8160953d93ea17dc2611b90883ccc3ad3b8"
+    },
+    {
+      "path": "docs/ENFORCEMENT_MODEL.md",
+      "sha256": "f4e53807ec5debbc01d8e11728a6ae2ec4ff06f570ebe1c2f2d059cede6e68e2"
+    },
+    {
+      "path": "docs/LIFECYCLE_GATES.md",
+      "sha256": "a77ce3e1ef41e05b778dcdf7781c4dd7cd2d335e678169e9566b4f48cc031357"
+    },
+    {
+      "path": "docs/PROJECT_ADOPTION.md",
+      "sha256": "14ae8552b42f6af4b8639355671fb51e807aade26c079e00c2e58b2df7ab38c0"
+    },
+    {
+      "path": "docs/RELEASE_AND_CHANGE_CONTROL.md",
+      "sha256": "544093914d6aeef1144c6102fa633562c2d85f7815ebac63e817db2d94d28047"
+    },
+    {
+      "path": "docs/UAM.md",
+      "sha256": "dd90a0a5b5a9a86cf4cee880a59a69758a3d0dfb76a28281655ca9e1a1c811eb"
+    },
+    {
+      "path": "enforcement/copilot-instructions.md",
+      "sha256": "f6fd4ce70365813c267a3dd6198b27172bb635885d39e949c43e705501a9cd65"
+    },
+    {
+      "path": "enforcement/cursor/ases.mdc",
+      "sha256": "f9a0c897c9a1dc552fc41ae46490d06e764c8d9eabacbf6ab849b4fcd3f3ee2b"
+    },
+    {
+      "path": "enforcement/generic/PROJECT_AI_INSTRUCTIONS.md",
+      "sha256": "92f2b3dd3c4380c14ab532fa6d1eeb336ef609013fa95820d7be0232799a4c30"
+    },
+    {
+      "path": "scripts/ases_gate.py",
+      "sha256": "f8388751565e9d0c560a35679a02dad484bd18fbd1194ef265295bd3272295ef"
+    },
+    {
+      "path": "scripts/ases_identity.py",
+      "sha256": "e680a8de5dbc7944381adeca87b33c27db52f196d7859cb04fef08ff2056f546"
+    },
+    {
+      "path": "scripts/ases_verify.py",
+      "sha256": "e2bc0672e2464206ffc80125939f9d5980f4fc326960236a84bca8dd093f0398"
+    },
+    {
+      "path": "templates/APPROVED_DECISIONS.md",
+      "sha256": "453267ca6e5dbe03ff9a05859bdc1d9655f9b9056bbab77370aa717baeb995b9"
+    },
+    {
+      "path": "templates/ASES_APPROVAL_RECORD.md",
+      "sha256": "a067147c9f14eb899aa7c6b69a32b6865609c5369e35ddf99c5d23820426eb67"
+    },
+    {
+      "path": "templates/CHANGE_REQUEST.md",
+      "sha256": "55e83be363f3e3070754e8d9c360ed4eb6009f22ef4e8a31954ddb734961013f"
+    },
+    {
+      "path": "templates/CURRENT_TASK.md",
+      "sha256": "e4594eee715b7a31553b353a30165d17eff1b9b7c5115be4976e6cafa967a361"
+    },
+    {
+      "path": "templates/MILESTONE_COMPLETION_REPORT.md",
+      "sha256": "cadcf0beaaccc55adad32491de6e69e75244470d45e5679e260acf9a835985c4"
+    },
+    {
+      "path": "templates/PROJECT_COMPLIANCE_PROFILE.md",
+      "sha256": "63bb1293799ca478486827f0495b489a79bda80910a14275e9fc8904c7b18732"
+    },
+    {
+      "path": "templates/PROJECT_CONTEXT.md",
+      "sha256": "4840c584f103e581626835fc40f666e839704bd75a7186020b0aef3429600c6d"
+    },
+    {
+      "path": "templates/TASK_IDENTITY.json",
+      "sha256": "8a6ca5d9737efb0e722c73345b47ff1638a9197ac8318a3e9e7dc0cfd752eeb6"
+    },
+    {
+      "path": "templates/ases-governance.yml",
+      "sha256": "d30c7619a12bb0b925de7d61af6e738eb39cb6b5a4887313d86d2b627c79a6e8"
+    }
+  ]
+}

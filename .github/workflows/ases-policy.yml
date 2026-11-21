@@ -23,3 +23,9 @@ jobs:
           python-version: "3.x"
       - name: Validate ASES policy files
         run: python scripts/check_policy.py
+      - name: Run ASES source preflight
+        run: python scripts/ases_preflight.py --project-root .
+      - name: Check snapshot manifest is current
+        run: python scripts/ases_verify.py manifest --check
+      - name: Run governance and UAM tests
+        run: python -m unittest discover -s tests -v
