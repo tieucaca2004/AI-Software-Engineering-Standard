@@ -1,0 +1,4 @@
+# ASES code owners (enforced by the main-protection ruleset: Code Owner review required).
+# Owner = the repository owner and sole administrator, as reported by the GitHub API.
+# Every file in this repository is a governance, policy, enforcement or CI file, so one rule covers all paths.
+*  @tieucaca2004
