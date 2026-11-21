@@ -2,8 +2,9 @@
 
 **Status:** Prepared for independent human review. This document is not a review, approval, acceptance or merge authorization.
 
-**Baseline (current):**
-- PR #1 head: `5a57e2e` (branch `uam-mvp`, 25 commits).
+**Implementation review baseline:**
+- PR #1 implementation snapshot: `5a57e2e` (25 commits, 35 changed files, +4,760 / −123).
+- Subsequent commits that only synchronize this review package do not change the reviewed implementation baseline.
 - PR #1 base: `main` at `6cffc35` (after PR #2 CODEOWNERS merge).
 - PR #2: **MERGED** — `.github/CODEOWNERS` is now on `main`.
 - Implementation baseline: identity hash implemented at `f47d6ee`; JCS fix `7a569fb`;
@@ -21,9 +22,9 @@ PR #1 without relying on the author's summary.
 
 ### 2.1 Scope
 
-- Branch: `uam-mvp` (head `5a57e2e`).
+- Branch: `uam-mvp`.
 - Base: `main` at `6cffc35`.
-- 25 commits from `1bf57ce` through `5a57e2e` (35 changed files, +4,760 / −123).
+- Implementation baseline: 25 commits from `1bf57ce` through `5a57e2e` (35 changed files, +4,760 / −123).
 - No merge, approval or Founder acceptance is claimed for PR #1 itself.
 
 ### 2.2 Change map
