@@ -3,9 +3,11 @@
 **Status:** Prepared for independent human review. This document is not a review, approval, acceptance or merge authorization.
 
 **Baseline (current):**
-- PR #1 head: `646c29b` (branch `uam-mvp`, 22 commits).
+- PR #1 head: `ef71ddf` (branch `uam-mvp`, 24 commits).
 - PR #1 base: `main` at `6cffc35` (after PR #2 CODEOWNERS merge).
 - PR #2: **MERGED** — `.github/CODEOWNERS` is now on `main`.
+- Implementation baseline: identity hash implemented at `f47d6ee`; JCS fix `7a569fb`;
+  schema_version type fix `6ff8b00`. Later commits are documentation/reconciliation only.
 
 This package reviews the implementation in PR #1. This file is a review aid and may be amended
 later; any such amendment does not change the reviewed implementation commits.
@@ -19,9 +21,9 @@ PR #1 without relying on the author's summary.
 
 ### 2.1 Scope
 
-- Branch: `uam-mvp` (head `646c29b`).
+- Branch: `uam-mvp` (head `ef71ddf`).
 - Base: `main` at `6cffc35`.
-- 22 commits from `1bf57ce` through `646c29b` (35 changed files, +4,750 / −123).
+- 24 commits from `1bf57ce` through `ef71ddf` (35 changed files, +4,758 / −123).
 - No merge, approval or Founder acceptance is claimed for PR #1 itself.
 
 ### 2.2 Change map
@@ -68,10 +70,10 @@ PR #1 without relying on the author's summary.
 
 Command: `python -m unittest discover -s tests -q`
 
-Result at `646c29b`:
+Result at `ef71ddf`:
 
 ```text
-Ran 127 tests in 40.263s
+Ran 131 tests in 40.302s
 OK (skipped=1)
 ```
 
@@ -98,8 +100,8 @@ creation locally; Windows junction rejection is tested and passes.
 
 ### 2.6 CI evidence
 
-- Latest run for `646c29b`: `ASES policy files` check — success
-  ([run 44854256098](https://github.com/tieucaca2004/AI-Software-Engineering-Standard/actions/runs/44854256098)).
+- Latest run for `ef71ddf`: `ASES policy files` check — success
+  ([run 44855618143](https://github.com/tieucaca2004/AI-Software-Engineering-Standard/actions/runs/44855618143)).
 - Earlier green runs exist for `7a569fb`, `6ff8b00` and prior commits.
 - Required check: `ASES policy files`.
 - Workflow steps: policy check, preflight, manifest check, full tests.
