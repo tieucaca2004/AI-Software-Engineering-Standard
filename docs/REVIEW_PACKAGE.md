@@ -3,7 +3,7 @@
 **Status:** Prepared for independent human review. This document is not a review, approval, acceptance or merge authorization.
 
 **Baseline (current):**
-- PR #1 head: `ef71ddf` (branch `uam-mvp`, 24 commits).
+- PR #1 head: `5a57e2e` (branch `uam-mvp`, 25 commits).
 - PR #1 base: `main` at `6cffc35` (after PR #2 CODEOWNERS merge).
 - PR #2: **MERGED** — `.github/CODEOWNERS` is now on `main`.
 - Implementation baseline: identity hash implemented at `f47d6ee`; JCS fix `7a569fb`;
@@ -21,9 +21,9 @@ PR #1 without relying on the author's summary.
 
 ### 2.1 Scope
 
-- Branch: `uam-mvp` (head `ef71ddf`).
+- Branch: `uam-mvp` (head `5a57e2e`).
 - Base: `main` at `6cffc35`.
-- 24 commits from `1bf57ce` through `ef71ddf` (35 changed files, +4,758 / −123).
+- 25 commits from `1bf57ce` through `5a57e2e` (35 changed files, +4,760 / −123).
 - No merge, approval or Founder acceptance is claimed for PR #1 itself.
 
 ### 2.2 Change map
@@ -70,7 +70,7 @@ PR #1 without relying on the author's summary.
 
 Command: `python -m unittest discover -s tests -q`
 
-Result at `ef71ddf`:
+Result at `5a57e2e`:
 
 ```text
 Ran 131 tests in 40.302s
@@ -100,8 +100,8 @@ creation locally; Windows junction rejection is tested and passes.
 
 ### 2.6 CI evidence
 
-- Latest run for `ef71ddf`: `ASES policy files` check — success
-  ([run 44855618143](https://github.com/tieucaca2004/AI-Software-Engineering-Standard/actions/runs/44855618143)).
+- Latest run for `5a57e2e`: `ASES policy files` check — success
+  ([run 44856384408](https://github.com/tieucaca2004/AI-Software-Engineering-Standard/actions/runs/44856384408)).
 - Earlier green runs exist for `7a569fb`, `6ff8b00` and prior commits.
 - Required check: `ASES policy files`.
 - Workflow steps: policy check, preflight, manifest check, full tests.
