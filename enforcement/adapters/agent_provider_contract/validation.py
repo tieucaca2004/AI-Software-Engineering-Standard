@@ -160,3 +160,77 @@ def validate_result(obj, request=None):
         _check(ev_ref is None, "evidence_state=unavailable requires evidence_ref=null")
         _check(has("evidence"), "evidence unavailable requires an evidence error")
     return obj
+
+
+# ---- ases-usage/1 ----
+USAGE_SCHEMA = "ases-usage/1"
+USAGE_SOURCES = ("provider-reported", "estimated", "unavailable")
+USAGE_COMPLETENESS = ("complete", "partial", "unavailable")
+USAGE_CORE = ("input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")
+USAGE_OPTIONAL = ("thinking_tokens", "total_cost_usd")
+USAGE_REQUIRED = ("schema", "request_id", "work_unit_id", "provider_id", "source", "completeness",
+                  "input_tokens", "output_tokens", "cache_creation_input_tokens", "cache_read_input_tokens",
+                  "captured_utc")
+
+
+def _is_nonneg_int(x):
+    return isinstance(x, int) and not isinstance(x, bool) and x >= 0
+
+
+def _is_nonneg_number(x):
+    return isinstance(x, (int, float)) and not isinstance(x, bool) and x >= 0
+
+
+def validate_usage(obj):
+    """Validate an ases-usage/1 token-usage record."""
+    if not isinstance(obj, dict):
+        raise ValidationError("usage must be an object")
+    _check(obj.get("schema") == USAGE_SCHEMA, "schema must be %r" % USAGE_SCHEMA)
+    for f in USAGE_REQUIRED:
+        _check(f in obj, "required field %r missing" % f)
+    _check(isinstance(obj.get("request_id"), str) and obj["request_id"], "request_id is required")
+    _check(isinstance(obj.get("work_unit_id"), str) and obj["work_unit_id"], "work_unit_id is required")
+    _check(isinstance(obj.get("provider_id"), str) and obj["provider_id"], "provider_id is required")
+    _check(isinstance(obj.get("captured_utc"), str) and obj["captured_utc"], "captured_utc is required")
+
+    source = obj.get("source")
+    completeness = obj.get("completeness")
+    _check(source in USAGE_SOURCES, "source must be one of %r" % (USAGE_SOURCES,))
+    _check(completeness in USAGE_COMPLETENESS, "completeness must be one of %r" % (USAGE_COMPLETENESS,))
+
+    # core metrics: non-negative integer or null
+    core = {f: obj.get(f) for f in USAGE_CORE}
+    for f in USAGE_CORE:
+        _check(core[f] is None or _is_nonneg_int(core[f]),
+               "%r must be a non-negative integer or null" % f)
+
+    # optional metrics
+    thinking = obj.get("thinking_tokens")
+    cost = obj.get("total_cost_usd")
+    if "thinking_tokens" in obj:
+        _check(thinking is None or _is_nonneg_int(thinking), "thinking_tokens must be a non-negative integer or null")
+    if "total_cost_usd" in obj:
+        _check(cost is None or _is_nonneg_number(cost), "total_cost_usd must be a non-negative number or null")
+    if "raw_ref" in obj:
+        _check(obj["raw_ref"] is None or (isinstance(obj["raw_ref"], str) and obj["raw_ref"]),
+               "raw_ref must be a non-empty string or null")
+
+    non_null = [f for f in USAGE_CORE if core[f] is not None]
+    if completeness == "complete":
+        _check(len(non_null) == 4, "complete requires all four core metrics non-null")
+        _check(source in ("provider-reported", "estimated"),
+               "complete usage cannot have source=unavailable")
+    elif completeness == "partial":
+        _check(0 < len(non_null) < 4, "partial requires at least one (not all) core metric non-null")
+        _check(source in ("provider-reported", "estimated"),
+               "partial usage cannot have source=unavailable")
+    elif completeness == "unavailable":
+        _check(len(non_null) == 0, "unavailable requires all core metrics null")
+        _check(source == "unavailable", "unavailable usage requires source=unavailable")
+
+    # consistency: source=unavailable implies completeness=unavailable
+    if source == "unavailable":
+        _check(completeness == "unavailable", "source=unavailable requires completeness=unavailable")
+
+    return obj
+

@@ -12,6 +12,7 @@ authority for authorization, scope, and the final Work Unit result.
 | `ases-provider/1` | Provider identity + capability declaration |
 | `ases-exec-request/1` | Execution request carrying Work Unit identity, authorization references, objective, scope, and provider config |
 | `ases-exec-result/1` | Normalized execution result with independent execution / output / evidence outcomes |
+| `ases-usage/1` | Token usage record (normalized provider-reported usage) |
 
 ## Key invariants
 
@@ -32,5 +33,14 @@ authority for authorization, scope, and the final Work Unit result.
 
 ## Validation
 
-`validation.py` provides `validate_provider`, `validate_request`, `validate_result`
-(stdlib-only, deterministic). See `tests/test_contract.py`.
+`validation.py` provides `validate_provider`, `validate_request`, `validate_result`,
+and `validate_usage` (stdlib-only, deterministic). See `tests/test_contract.py` and
+`tests/test_usage.py`.
+
+## `ases-usage/1` semantics
+
+- **Required core metrics:** `input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`.
+- **Optional metrics:** `thinking_tokens`, `total_cost_usd` (nullable without invalidating a complete record).
+- **Completeness:** `complete` = all four core metrics non-null; `partial` = at least one (not all) core metric non-null; `unavailable` = all four core metrics null and `source=unavailable`.
+- **Zero vs null:** `0` is a reported value; `null` means not reported.
+- **Terminology:** use `complete provider-reported usage`, never `verified usage` (no independent verification exists).
