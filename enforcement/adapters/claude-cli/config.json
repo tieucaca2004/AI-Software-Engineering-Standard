@@ -1,0 +1,6 @@
+{
+  "executable": "claude",
+  "timeout_seconds": 600,
+  "model": null,
+  "permission_mode": "manual"
+}
