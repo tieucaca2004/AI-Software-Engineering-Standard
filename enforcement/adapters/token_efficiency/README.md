@@ -12,7 +12,10 @@ enforcement**.
 | `policy.py` | `ases-budget-policy/1` representation + validation (`validate_policy`, `total_tokens_from_usage`) |
 | `evaluator.py` | deterministic `evaluate(policy, usage_input, policy_ref)` → decision record |
 | `decision.py` | `ases-budget-decision/1` schema + `validate_decision` |
-| `cli.py` | workflow CLI (`--policy --usage --output`) |
+| `cli.py` | budget workflow CLI (`--policy --usage --output`) |
+| `aggregator.py` | deterministic usage aggregation, dedup, conflict quarantine, snapshot |
+| `snapshot.py` | `ases-usage-aggregate/1` schema + `validate_snapshot` |
+| `agg_cli.py` | aggregation workflow CLI (`--usage-files --scope --output [--m3-output]`) |
 
 ## Budget policy (`ases-budget-policy/1`)
 
@@ -71,6 +74,22 @@ facts. No automatic retry of UNKNOWN.
 - No runtime token enforcement.
 - Aggregation/dedup/conflict-resolution is M4 (out of scope here).
 
+## Usage aggregation (M4)
+
+`aggregator.aggregate(records, scope)` consumes `ases-usage/1` records (as `(record, ref)`
+pairs), deduplicates by `request_id`, applies partial→complete replacement, detects
+conflicting complete records, and produces an `ases-usage-aggregate/1` snapshot.
+
+- **Three aggregate classes:** complete provider-reported totals (primary), partial/unavailable
+  totals (secondary), and a conflict inventory (quarantined).
+- **Token formula:** `total_input = input_tokens + cache_creation_input_tokens + cache_read_input_tokens`;
+  `total_output = output_tokens`; `total_tokens = total_input + total_output`. `thinking_tokens` and
+  cache breakdowns are **not** double-counted.
+- **Budget safety:** the M3 input claims `completeness=complete` **only** when the scope is
+  complete and conflict-free; any partial/unavailable/invalid/conflicted request → `partial`/`unavailable`,
+  so M3 returns `UNAVAILABLE` (never a false `ALLOW`).
+
 ## Testing
 
-`tests/` — `test_policy.py`, `test_evaluator.py`, `test_decision.py`, `test_workflow.py`.
+`tests/` — `test_policy.py`, `test_evaluator.py`, `test_decision.py`, `test_workflow.py`,
+`test_aggregator.py`.
