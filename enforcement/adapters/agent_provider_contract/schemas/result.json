@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ases-exec-result/1",
+  "type": "object",
+  "required": ["schema", "request_id", "work_unit_id", "provider_id", "status",
+               "started_utc", "termination_reason", "output_state", "evidence_state", "errors"],
+  "additionalProperties": true,
+  "properties": {
+    "schema": {"const": "ases-exec-result/1"},
+    "request_id": {"type": "string", "minLength": 1},
+    "work_unit_id": {"type": "string", "minLength": 1},
+    "provider_id": {"type": "string", "minLength": 1},
+    "status": {"enum": ["SUCCEEDED", "FAILED", "TIMED_OUT", "INTERRUPTED", "UNKNOWN"]},
+    "exit_code": {"type": ["integer", "null"]},
+    "signal": {"type": ["string", "null"]},
+    "started_utc": {"type": ["string", "null"]},
+    "completed_utc": {"type": ["string", "null"]},
+    "terminated_utc": {"type": ["string", "null"]},
+    "termination_reason": {"enum": ["none", "start-failed", "timeout", "interrupted", "external", "lost-observability"]},
+    "termination_mechanism": {"type": ["string", "null"]},
+    "duration_seconds": {"type": ["number", "null"]},
+    "output_ref": {"type": ["string", "null"]},
+    "output_state": {"enum": ["none", "complete", "partial", "unavailable"]},
+    "evidence_ref": {"type": ["string", "null"]},
+    "evidence_state": {"enum": ["complete", "partial", "unavailable"]},
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["scope"],
+        "properties": {
+          "scope": {"enum": ["provider", "output", "evidence", "termination", "observability"]},
+          "category": {"type": "string"},
+          "message": {"type": "string"}
+        }
+      }
+    }
+  }
+}

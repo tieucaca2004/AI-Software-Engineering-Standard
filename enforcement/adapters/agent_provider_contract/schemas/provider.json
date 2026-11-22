@@ -1,0 +1,14 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ases-provider/1",
+  "type": "object",
+  "required": ["schema", "provider_id", "provider_version", "adapter_version"],
+  "additionalProperties": true,
+  "properties": {
+    "schema": {"const": "ases-provider/1"},
+    "provider_id": {"type": "string", "minLength": 1},
+    "provider_version": {"type": "string", "minLength": 1},
+    "adapter_version": {"type": "string", "minLength": 1},
+    "capabilities": {"type": "array", "items": {"type": "string"}}
+  }
+}
