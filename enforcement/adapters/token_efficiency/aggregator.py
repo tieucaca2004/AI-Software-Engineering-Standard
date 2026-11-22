@@ -218,7 +218,14 @@ def read_usage_files(paths):
     return records, invalid
 
 
-def persist_snapshot(snapshot, path):
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(snapshot, f, indent=2)
+def persist_snapshot(snapshot, path=None, evidence_dir=None):
+    """Persist a snapshot durably (with .sha256 sidecar); `path=None` uses the evidence dir."""
+    from . import evidence
+    if path is None:
+        return evidence.persist_json(snapshot, evidence_dir=evidence_dir, kind="aggregate")
+    payload = json.dumps(snapshot, indent=2, sort_keys=True).encode("utf-8")
+    with open(path, "wb") as f:
+        f.write(payload)
+    with open(path + ".sha256", "w", encoding="utf-8") as f:
+        f.write(evidence.sha256_bytes(payload))
     return path

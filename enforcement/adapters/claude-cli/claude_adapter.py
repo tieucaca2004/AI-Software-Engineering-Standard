@@ -197,10 +197,8 @@ class ClaudeCliAdapter:
     def persist_usage(self, record):
         if record is None:
             return None
-        fd, path = tempfile.mkstemp(prefix="claude-usage-", suffix=".json")
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(record, f, indent=2)
-        return path
+        from token_efficiency import evidence
+        return evidence.persist_json(record, kind="usage", name=record.get("request_id") or None)
 
     def _collect_usage(self, request, out, captured_utc, raw_ref):
         record = self.normalize_usage(request, out, captured_utc=captured_utc, raw_ref=raw_ref)

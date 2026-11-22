@@ -15,6 +15,7 @@ enforcement**.
 | `cli.py` | budget workflow CLI (`--policy --usage --output`) |
 | `aggregator.py` | deterministic usage aggregation, dedup, conflict quarantine, snapshot |
 | `snapshot.py` | `ases-usage-aggregate/1` schema + `validate_snapshot` |
+| `evidence.py` | durable evidence storage + content-hash integrity |
 | `agg_cli.py` | aggregation workflow CLI (`--usage-files --scope --output [--m3-output]`) |
 
 ## Budget policy (`ases-budget-policy/1`)
@@ -89,7 +90,25 @@ conflicting complete records, and produces an `ases-usage-aggregate/1` snapshot.
   complete and conflict-free; any partial/unavailable/invalid/conflicted request → `partial`/`unavailable`,
   so M3 returns `UNAVAILABLE` (never a false `ALLOW`).
 
+## Evidence persistence (`evidence.py`)
+
+Durable evidence is stored **outside ephemeral temp storage** in the evidence directory
+(env `ASES_EVIDENCE_DIR`, default `~/.ases/evidence/<kind>/<name>.json`). Each JSON gets a
+`.sha256` sidecar; `evidence.load_json(ref, validator)` verifies the hash and validates on
+retrieval, so accidental corruption is detected. The hash is an integrity check only (not
+authenticity proof).
+
+- **Stable reference:** the returned file path.
+- **Retrieval:** `evidence.load_json(ref, validator)`.
+- **Integrity:** SHA-256 sidecar, verified on load.
+- **Traceability:** the aggregate snapshot's `m3_input.evidence_refs` and
+  `request_inventory[].refs` point to the durable usage records.
+- **Retention:** stored under `~/.ases/evidence` (external to the repo); no automatic
+  retention/cleanup is implemented — cleanup is an operator responsibility.
+- **Independent-process retrieval:** VERIFIED by a two-process test
+  (`test_persistence.py::test_two_process_retrieval`).
+
 ## Testing
 
 `tests/` — `test_policy.py`, `test_evaluator.py`, `test_decision.py`, `test_workflow.py`,
-`test_aggregator.py`.
+`test_aggregator.py`, `test_persistence.py`.

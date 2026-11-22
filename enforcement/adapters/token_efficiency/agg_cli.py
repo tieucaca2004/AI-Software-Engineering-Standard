@@ -16,8 +16,9 @@ def main(argv=None):
     ap.add_argument("--scope", required=True, choices=["work-unit", "request"])
     ap.add_argument("--work-unit-id", default=None, help="required when scope=work-unit")
     ap.add_argument("--request-id", default=None, help="required when scope=request")
-    ap.add_argument("--output", required=True, help="aggregate snapshot output path")
+    ap.add_argument("--output", default=None, help="aggregate snapshot output path (default: evidence dir)")
     ap.add_argument("--m3-output", default=None, help="optional prepared M3 input output path")
+    ap.add_argument("--evidence-dir", default=None, help="evidence directory override")
     args = ap.parse_args(argv)
 
     scope = {"scope": args.scope}
@@ -32,11 +33,14 @@ def main(argv=None):
         if inv not in snapshot["invalid_inputs"]:
             snapshot["invalid_inputs"].append(inv)
 
-    A.persist_snapshot(snapshot, args.output)
+    if args.output is None:
+        snapshot_ref = A.persist_snapshot(snapshot, evidence_dir=args.evidence_dir)
+    else:
+        snapshot_ref = A.persist_snapshot(snapshot, path=args.output)
     if args.m3_output:
         with open(args.m3_output, "w", encoding="utf-8") as f:
             json.dump(snapshot["m3_input"], f, indent=2)
-    print(json.dumps(snapshot, indent=2))
+    print(json.dumps({"snapshot_ref": snapshot_ref, "snapshot": snapshot}, indent=2))
     return 0
 
 
