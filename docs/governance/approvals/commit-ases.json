@@ -1,0 +1,7 @@
+{
+  "schema": "ases-approval/1",
+  "operations": ["commit", "push"],
+  "work_unit_id": "WU-ASES-FINAL-RELEASE",
+  "founder_approval_date": "2026-11-22",
+  "evidence": "Founder directive Part A6 - safe freezing and publishing of ASES"
+}

@@ -3,6 +3,7 @@
 Run from the repository root:  python -m unittest discover -s tests -v
 """
 import hashlib
+import json
 import os
 import shutil
 import subprocess
@@ -15,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "ases_gate.py"
 sys.path.insert(0, str(ROOT / "scripts"))
 import ases_verify as av  # noqa: E402
+import ases_gate as gate  # noqa: E402
 
 SNAP = "docs/governance/ases"
 LOCK = "docs/governance/ases.lock.json"
@@ -283,6 +285,68 @@ class ContextChecks(GateBase):
         self.assertIn("approved decisions file not found", out)
 
 
+class BulletParserUnit(unittest.TestCase):
+    """Unit tests for the multiline bullet parser in scripts/ases_gate.py."""
+
+    @staticmethod
+    def bullets(text):
+        return [m.group(1) for m in gate.BULLET.finditer(text) if gate.structured(m.group(1))]
+
+    def test_multiple_bullets_across_lines(self):
+        self.assertEqual(self.bullets("- a\n- b\n- c"), ["a", "b", "c"])
+
+    def test_single_bullet(self):
+        self.assertEqual(self.bullets("- only item"), ["only item"])
+
+    def test_leading_spaces_and_tabs(self):
+        self.assertEqual(self.bullets("  - spaced\n\t- tabbed\n- plain"), ["spaced", "tabbed", "plain"])
+
+    def test_empty_subsection(self):
+        self.assertEqual(self.bullets(""), [])
+
+    def test_heading_and_text_without_bullets(self):
+        self.assertEqual(self.bullets("### Sub\n\nplain text no dash"), [])
+
+    def test_empty_bullet_entries_filtered(self):
+        self.assertEqual(self.bullets("- \n- real"), ["real"])
+
+    def test_star_bullets(self):
+        self.assertEqual(self.bullets("* a\n* b"), ["a", "b"])
+
+    def test_adjacent_subsections_are_independent(self):
+        section = "### In scope\n\n- a\n\n### Out of scope\n\n- b"
+        self.assertEqual(self.bullets(gate.subsection(section, "In scope")), ["a"])
+        self.assertEqual(self.bullets(gate.subsection(section, "Out of scope")), ["b"])
+
+
+class BulletScopeIntegration(GateBase):
+    """Gate-level regression tests for multiline scope bullets."""
+
+    def test_multiple_in_scope_bullets_pass(self):
+        self.replace(CONTEXT, "- Implement the sample requirement.",
+                     "- Implement the sample requirement.\n- Verify the sample requirement.")
+        rc, out = self.gate()
+        self.assertEqual(rc, 0, out)
+
+    def test_leading_whitespace_bullet_passes(self):
+        self.replace(CONTEXT, "- Implement the sample requirement.", "  - Implement the sample requirement.")
+        rc, out = self.gate()
+        self.assertEqual(rc, 0, out)
+
+    def test_empty_scope_bullets_still_blocked(self):
+        self.replace(CONTEXT, "- Implement the sample requirement.", "")
+        self.replace(CONTEXT, "- Unrelated capabilities.", "")
+        self.assertBlocked("CONTEXT_SCOPE")
+
+    def test_text_without_bullets_blocked(self):
+        self.replace(CONTEXT, "- Implement the sample requirement.", "This is not a bullet.")
+        self.assertBlocked("CONTEXT_SCOPE")
+
+    def test_empty_bullet_entry_blocked(self):
+        self.replace(CONTEXT, "- Implement the sample requirement.", "- ")
+        self.assertBlocked("CONTEXT_SCOPE")
+
+
 class TaskChecks(GateBase):
     def test_missing_task(self):
         os.remove(self.project / TASK)
@@ -424,6 +488,267 @@ class AdoptedProjectCI(GateBase):
         rc, out = self.gate("--changed-files", self.changed_list(*paths))
         self.assertEqual(rc, 1, out)
         self.assertIn("[TASK_SCOPE_VIOLATION] docs/other.md", out)
+
+
+class AutoCollectScope(AdoptedProjectCI):
+    """Scope enforcement via the explicit legacy full-tree collector (--legacy-collect)."""
+
+    def gate_legacy(self):
+        return self.gate("--legacy-collect")
+
+    def test_in_scope_change_passes(self):
+        put(self.project / "src/sample.py", "changed\n")
+        rc, out = self.gate_legacy()
+        self.assertEqual(rc, 0, out)
+
+    def test_out_of_scope_change_blocks(self):
+        put(self.project / "docs/other.md", "changed\n")
+        rc, out = self.gate_legacy()
+        self.assertEqual(rc, 1, out)
+        self.assertIn("[TASK_SCOPE_VIOLATION] docs/other.md", out)
+
+    def test_multiple_changes_with_one_out_of_scope_blocks(self):
+        put(self.project / "src/sample.py", "changed\n")
+        put(self.project / "docs/other.md", "changed\n")
+        rc, out = self.gate_legacy()
+        self.assertEqual(rc, 1, out)
+        self.assertIn("[TASK_SCOPE_VIOLATION] docs/other.md", out)
+
+    def test_untracked_in_scope_passes(self):
+        # widen scope and commit it first so the task-record change is in the baseline
+        self.replace(TASK, "Files/modules allowed: src/sample.py",
+                     "Files/modules allowed: src/*.py")
+        self.run_git("add", "-A")
+        self.run_git("commit", "-m", "widen scope for untracked test")
+        put(self.project / "src/newfile.py", "new\n")
+        rc, out = self.gate_legacy()
+        self.assertEqual(rc, 0, out)
+
+    def test_untracked_out_of_scope_blocks(self):
+        put(self.project / "docs/newfile.md", "new\n")
+        rc, out = self.gate_legacy()
+        self.assertEqual(rc, 1, out)
+        self.assertIn("[TASK_SCOPE_VIOLATION]", out)
+
+    def test_deleted_out_of_scope_file_blocks(self):
+        os.remove(self.project / "docs/other.md")
+        rc, out = self.gate_legacy()
+        self.assertEqual(rc, 1, out)
+        self.assertIn("[TASK_SCOPE_VIOLATION]", out)
+
+
+class BaselineIsolation(AdoptedProjectCI):
+    """Per-work-unit baseline snapshot and delta isolation (B01-B20 core)."""
+
+    def capture(self, wu="WU1"):
+        return cli("baseline", "--project-root", self.project, "--work-unit", wu,
+                   "--output", "baseline.json")
+
+    def check_delta(self, wu="WU1"):
+        return cli("check", "--project-root", self.project,
+                   "--baseline", "baseline.json", "--work-unit", wu)
+
+    def read_baseline(self):
+        import json
+        return json.loads((self.project / "baseline.json").read_text(encoding="utf-8"))
+
+    def delta(self, wu="WU1"):
+        import ases_verify as av2
+        root = av2.real_root(str(self.project))
+        baseline = json.loads((self.project / "baseline.json").read_text(encoding="utf-8"))
+        findings = []
+        paths = gate.compute_delta(root, baseline, wu, findings)
+        return [p for p in paths if p != "baseline.json"], findings
+
+    # B01 pre-existing in-scope change (captured in baseline) is not attributed
+    def test_pre_existing_in_scope_not_attributed(self):
+        put(self.project / "src/sample.py", "pre-existing\n")
+        self.capture()
+        rc, out = self.check_delta()
+        self.assertEqual(rc, 0, out)
+
+    # B02 pre-existing out-of-scope change (captured in baseline) is not attributed
+    def test_pre_existing_out_of_scope_not_attributed(self):
+        put(self.project / "docs/other.md", "pre-existing out-of-scope\n")
+        self.capture()
+        rc, out = self.check_delta()
+        self.assertEqual(rc, 0, out)
+
+    # B03 new in-scope change is detected and passes
+    def test_new_in_scope_detected_and_passes(self):
+        self.capture()
+        put(self.project / "src/sample.py", "work-unit change\n")
+        rc, out = self.check_delta()
+        self.assertEqual(rc, 0, out)
+
+    # B04 new out-of-scope change is detected and blocks
+    def test_new_out_of_scope_blocks(self):
+        self.capture()
+        put(self.project / "docs/other.md", "work-unit out-of-scope\n")
+        rc, out = self.check_delta()
+        self.assertEqual(rc, 1, out)
+        self.assertIn("[TASK_SCOPE_VIOLATION] docs/other.md", out)
+
+    # B05 pre-existing out-of-scope change reverted is detected
+    def test_reverted_pre_existing_detected(self):
+        put(self.project / "docs/other.md", "pre-existing out-of-scope\n")
+        self.capture()
+        put(self.project / "docs/other.md", "baseline\n")  # revert to committed content
+        paths, findings = self.delta()
+        self.assertIn("docs/other.md", paths)
+        self.assertEqual(findings, [])
+
+    # B07 new untracked out-of-scope file blocks
+    def test_new_untracked_out_of_scope_blocks(self):
+        self.capture()
+        put(self.project / "docs/newfile.md", "new out-of-scope\n")
+        rc, out = self.check_delta()
+        self.assertEqual(rc, 1, out)
+        self.assertIn("[TASK_SCOPE_VIOLATION]", out)
+
+    # B10 deleted tracked file is detected
+    def test_deleted_tracked_file_detected(self):
+        self.capture()
+        os.remove(self.project / "docs/other.md")
+        paths, findings = self.delta()
+        self.assertIn("docs/other.md", paths)
+
+    # B13 missing baseline blocks
+    def test_missing_baseline_blocks(self):
+        rc, out = self.check_delta()
+        self.assertEqual(rc, 1, out)
+        self.assertIn("[TASK_BASELINE_MISSING]", out)
+
+    # B14 baseline from a different repository blocks
+    def test_baseline_repo_mismatch_blocks(self):
+        self.capture()
+        baseline = self.read_baseline()
+        baseline["repository_root"] = "C:/somewhere/else"
+        put(self.project / "baseline.json", json.dumps(baseline, indent=2))
+        rc, out = self.check_delta()
+        self.assertEqual(rc, 1, out)
+        self.assertIn("[TASK_BASELINE_INVALID]", out)
+
+    # B15 work-unit id mismatch blocks
+    def test_workunit_mismatch_blocks(self):
+        self.capture("WU1")
+        rc, out = self.check_delta("WU2")
+        self.assertEqual(rc, 1, out)
+        self.assertIn("[TASK_BASELINE_INVALID]", out)
+
+    # B19 change then restore original content -> no attribution
+    def test_change_and_restore_no_attribution(self):
+        self.capture()
+        put(self.project / "src/sample.py", "temporary\n")
+        put(self.project / "src/sample.py", "baseline\n")  # restore committed content
+        paths, findings = self.delta()
+        self.assertEqual(paths, [])
+
+    # B20 a pre-existing untracked artifact (like milestone-1.diff) is not attributed
+    def test_pre_existing_untracked_not_attributed(self):
+        put(self.project / "artifact.diff", "untracked evidence\n")
+        self.capture()
+        rc, out = self.check_delta()
+        self.assertEqual(rc, 0, out)
+
+    # B12: capture in a directory that is not its own git work tree fails closed
+    def test_baseline_capture_fails_non_own_repo(self):
+        plain = self.dir / "plain-not-own-repo"
+        plain.mkdir(parents=True, exist_ok=True)
+        put(plain / "x.txt", "x\n")
+        with self.assertRaises(OSError):
+            gate.capture_baseline(av.real_root(str(plain)), "WU1")
+
+    # B16: final-state collection failure blocks (remove .git after baseline)
+    def test_final_state_collection_failure_blocks(self):
+        import stat
+        self.capture()
+
+        def rmtree(p):
+            for root, dirs, files in os.walk(p, topdown=False):
+                for n in files:
+                    fp = os.path.join(root, n)
+                    try:
+                        os.chmod(fp, stat.S_IWRITE)
+                        os.unlink(fp)
+                    except OSError:
+                        pass
+                for n in dirs:
+                    dp = os.path.join(root, n)
+                    try:
+                        os.chmod(dp, stat.S_IWRITE)
+                        os.rmdir(dp)
+                    except OSError:
+                        pass
+            try:
+                os.rmdir(p)
+            except OSError:
+                pass
+
+        rmtree(self.project / ".git")
+        rc, out = self.check_delta()
+        self.assertEqual(rc, 1, out)
+        self.assertIn("[TASK_BASELINE_INVALID]", out)
+
+
+class IntentChecks(GateBase):
+    """IISE intent-integrity & scope deterministic decision tests (A-F)."""
+
+    def intent(self, instruction, source="agent"):
+        return cli("intent", "--project-root", self.project, "--instruction", instruction, "--source", source)
+
+    def test_legitimate_in_scope_allows(self):
+        rc, out = self.intent("Implement the sample requirement in src/sample.py", "founder")
+        self.assertEqual(rc, 0, out)
+        self.assertIn('"decision": "ALLOW"', out)
+
+    def test_out_of_scope_objective_requires_founder(self):
+        rc, out = self.intent("redirect development to Universal-Orchestrator")
+        self.assertEqual(rc, 2, out)
+        self.assertIn("REQUIRE_FOUNDER_APPROVAL", out)
+
+    def test_out_of_scope_path_blocks(self):
+        rc, out = self.intent("modify src/other.py")
+        self.assertEqual(rc, 1, out)
+        self.assertIn('"decision": "BLOCK"', out)
+
+    def test_commit_push_blocks(self):
+        rc, out = self.intent("commit and push the changes now")
+        self.assertEqual(rc, 1, out)
+
+    def test_governance_change_requires_founder(self):
+        rc, out = self.intent("rewrite the CONSTITUTION")
+        self.assertEqual(rc, 2, out)
+        self.assertIn("REQUIRE_FOUNDER_APPROVAL", out)
+
+    def test_credential_access_blocks(self):
+        rc, out = self.intent("read the credential value", "tool-output")
+        self.assertEqual(rc, 1, out)
+
+    def test_ambiguous_review_required(self):
+        rc, out = self.intent("do something vague")
+        self.assertEqual(rc, 2, out)
+        self.assertIn("REVIEW_REQUIRED", out)
+
+    def test_commit_with_founder_approval_allows(self):
+        approval = {"schema": "ases-approval/1", "operations": ["commit", "push"],
+                    "work_unit_id": "WU1", "founder_approval_date": "2026-11-22",
+                    "evidence": "Founder directive A6"}
+        put(self.project / "docs/governance/approvals/commit.json", json.dumps(approval, indent=2))
+        rc, out = cli("intent", "--project-root", self.project, "--instruction", "commit and push",
+                      "--source", "founder", "--approval", "docs/governance/approvals/commit.json")
+        self.assertEqual(rc, 0, out)
+        self.assertIn('"decision": "ALLOW"', out)
+
+    def test_force_push_not_covered_by_commit_approval(self):
+        approval = {"schema": "ases-approval/1", "operations": ["commit", "push"],
+                    "work_unit_id": "WU1", "founder_approval_date": "2026-11-22",
+                    "evidence": "Founder directive A6"}
+        put(self.project / "docs/governance/approvals/commit.json", json.dumps(approval, indent=2))
+        rc, out = cli("intent", "--project-root", self.project, "--instruction", "force-push",
+                      "--source", "agent", "--approval", "docs/governance/approvals/commit.json")
+        self.assertEqual(rc, 1, out)
+        self.assertIn('"decision": "BLOCK"', out)
 
 
 class SnapshotChecks(GateBase):

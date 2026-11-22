@@ -15,9 +15,11 @@ import argparse
 import collections
 import datetime
 import fnmatch
+import hashlib
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -60,9 +62,11 @@ HINTS = {
     "TASK_NOT_AUTHORIZED": "Only Status: Authorized permits implementation. Do not self-authorize.",
     "TASK_PROJECT_MISMATCH": "The task must name the same project as the project context.",
     "TASK_PLACEHOLDER": "Replace every task placeholder before implementation.",
-    "TASK_CHANGED_FILES_MISSING": "Create the changed-files list or run without --changed-files before implementation.",
+    "TASK_CHANGED_FILES_MISSING": "Supply --baseline, --changed-files, or --legacy-collect before scope enforcement.",
     "TASK_CHANGED_FILES_INVALID": "Changed-file paths must be project-relative, with no '..' or drive prefix.",
     "TASK_SCOPE_VIOLATION": "The changed path is outside Files/modules allowed. Stop or obtain a new task authorization.",
+    "TASK_BASELINE_MISSING": "Capture a per-work-unit baseline with 'ases_gate.py baseline' before execution.",
+    "TASK_BASELINE_INVALID": "Provide a valid, uncorrupted baseline that matches this repository and work unit.",
     "IDENTITY_INVALID": "Fix or provide a valid task-identity record; see templates/TASK_IDENTITY.json and docs/IDENTITY_CONTRACT.md.",
 }
 
@@ -105,7 +109,7 @@ PLACEHOLDER = re.compile(r"<[^<>\n]{1,200}>|\b(?:TBD|TBC|TODO|FIXME)\b", re.IGNO
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 HEADING2 = re.compile(r"^##\s+(.+?)\s*$")
 HEADING3 = re.compile(r"^###\s+(.+?)\s*$")
-BULLET = re.compile(r"^\s*[-*]\s+(.+?)\s*$")
+BULLET = re.compile(r"^[ \t]*[-*][ \t]+(.+?)[ \t]*$", re.MULTILINE)
 
 
 def structured(value):
@@ -406,6 +410,169 @@ def load_changed_files(root_real, rel, findings):
     return paths
 
 
+def collect_git_changed_files(root, findings):
+    """Collect the actual working-tree changed paths (tracked + untracked) from git.
+
+    Used when the caller does not supply --changed-files so scope enforcement is
+    not silently skipped for a governed git work unit. Returns None when the
+    project root is not a git work tree (scope enforcement does not apply) or when
+    collection fails (in which case a finding has been appended and the gate blocks).
+    """
+    try:
+        toplevel = subprocess.run(
+            ["git", "-C", root, "rev-parse", "--show-toplevel"],
+            stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    except (FileNotFoundError, OSError):
+        findings.append(Finding("TASK_CHANGED_FILES_INVALID", "changed files",
+                                "git is not available; cannot collect changed files"))
+        return None
+    if toplevel.returncode != 0:
+        return None  # not a git work tree: scope enforcement does not apply here
+    top = toplevel.stdout.decode("utf-8", "replace").strip()
+    if os.path.normcase(os.path.realpath(top)) != os.path.normcase(os.path.realpath(root)):
+        # The project root lives inside an unrelated parent repository, not its own
+        # work tree, so git-derived scope enforcement does not apply here.
+        return None
+    paths = []
+    for args in (["git", "-C", root, "diff", "--name-only", "-z", "HEAD"],
+                 ["git", "-C", root, "ls-files", "--others", "--exclude-standard", "-z"]):
+        proc = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if proc.returncode != 0:
+            findings.append(Finding("TASK_CHANGED_FILES_INVALID", "changed files",
+                                    "git collection failed (%s)" % " ".join(args[2:])))
+            return None
+        for raw in proc.stdout.split(b"\x00"):
+            if not raw:
+                continue
+            path = raw.decode("utf-8", "replace").replace("\\", "/")
+            parts = path.split("/")
+            if (path.startswith("/") or re.match(r"^[A-Za-z]:", path)
+                    or any(part in ("", ".", "..") for part in parts)
+                    or any(ord(ch) < 32 for ch in path)):
+                findings.append(Finding("TASK_CHANGED_FILES_INVALID", path,
+                                        "changed-file path is absolute, empty, '.', '..' "
+                                        "or contains control characters"))
+                return None
+            paths.append(path)
+    return list(dict.fromkeys(paths))
+
+
+BASELINE_SCHEMA = "ases-baseline/1"
+
+
+def _is_own_git_root(root):
+    """True only when `root` is itself a git work-tree root (not inside a parent repo)."""
+    try:
+        proc = subprocess.run(["git", "-C", root, "rev-parse", "--show-toplevel"],
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except (FileNotFoundError, OSError):
+        return False
+    if proc.returncode != 0:
+        return False
+    top = proc.stdout.decode("utf-8", "replace").strip()
+    return os.path.normcase(os.path.realpath(top)) == os.path.normcase(os.path.realpath(root))
+
+
+def _raw_sha256(full_path):
+    digest = hashlib.sha256()
+    with open(full_path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _enumerate_snapshot(root):
+    """Return {project-relative-path: content_sha256_or_None} for tracked + untracked files.
+
+    Fails closed (raises OSError) when the project root is not its own git work tree,
+    so a parent repository discovered by git is never mistaken for the project root.
+    """
+    if not _is_own_git_root(root):
+        raise OSError("project root is not its own git work tree")
+    files = {}
+    seen = set()
+    for extra in (["-z"], ["--others", "--exclude-standard", "-z"]):
+        proc = subprocess.run(["git", "-C", root, "ls-files"] + extra,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if proc.returncode != 0:
+            raise OSError("git ls-files failed")
+        for raw in proc.stdout.split(b"\x00"):
+            if not raw:
+                continue
+            path = raw.decode("utf-8", "replace").replace("\\", "/")
+            if path in seen:
+                continue
+            seen.add(path)
+            full = os.path.join(root, path.replace("/", os.sep))
+            files[path] = _raw_sha256(full) if os.path.isfile(full) else None
+    return files
+
+
+def capture_baseline(root, work_unit_id):
+    """Capture a working-tree snapshot immediately before a work unit starts."""
+    return {
+        "schema": BASELINE_SCHEMA,
+        "repository_root": os.path.realpath(root),
+        "work_unit_id": work_unit_id,
+        "captured_utc": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "files": _enumerate_snapshot(root),
+    }
+
+
+def compute_delta(root, baseline, work_unit_id, findings):
+    """Compute the per-work-unit delta against a baseline snapshot.
+
+    Returns a sorted list of changed project-relative paths (new, modified or
+    deleted), or None when the baseline is unusable (a finding is appended).
+    """
+    if not isinstance(baseline, dict) or baseline.get("schema") != BASELINE_SCHEMA:
+        findings.append(Finding("TASK_BASELINE_INVALID", "baseline", "unsupported or missing baseline schema"))
+        return None
+    baseline_root = baseline.get("repository_root") or ""
+    if os.path.normcase(os.path.realpath(baseline_root)) != os.path.normcase(os.path.realpath(root)):
+        findings.append(Finding("TASK_BASELINE_INVALID", "baseline",
+                                "baseline belongs to a different repository"))
+        return None
+    if work_unit_id and baseline.get("work_unit_id") != work_unit_id:
+        findings.append(Finding("TASK_BASELINE_INVALID", "baseline",
+                                "baseline work-unit id does not match"))
+        return None
+    baseline_files = baseline.get("files")
+    if not isinstance(baseline_files, dict):
+        findings.append(Finding("TASK_BASELINE_INVALID", "baseline",
+                                "baseline files map is missing or malformed"))
+        return None
+    try:
+        current_files = _enumerate_snapshot(root)
+    except OSError as exc:
+        findings.append(Finding("TASK_BASELINE_INVALID", "baseline",
+                                "final-state collection failed: %s" % exc))
+        return None
+    changed = set()
+    for path, digest in current_files.items():
+        if path not in baseline_files:
+            changed.add(path)
+        elif baseline_files[path] != digest:
+            changed.add(path)
+    for path in baseline_files:
+        if path not in current_files:
+            changed.add(path)
+    return sorted(changed)
+
+
+def load_baseline(root, rel, findings):
+    try:
+        text = read_text(root, rel)
+    except (FileNotFoundError, av.PathProblem, OSError, ValueError) as exc:
+        findings.append(Finding("TASK_BASELINE_MISSING", rel, str(exc)))
+        return None
+    try:
+        return json.loads(text)
+    except ValueError as exc:
+        findings.append(Finding("TASK_BASELINE_INVALID", rel, "malformed baseline JSON: %s" % exc))
+        return None
+
+
 def check_scope(changed_paths, allowed_value, findings):
     """Enforce Files/modules allowed with case-sensitive fnmatch patterns."""
     patterns = [part.strip().replace("\\", "/")
@@ -514,7 +681,19 @@ def cmd_check(args):
         else:
             verified.append("Identity hash: %s" % identity_hash)
 
-    if args.changed_files:
+    if args.baseline:
+        baseline = load_baseline(root, args.baseline, findings)
+        if baseline is not None:
+            changed_paths = compute_delta(root, baseline, args.work_unit, findings)
+            if changed_paths is not None:
+                baseline_self = args.baseline.replace("\\", "/")
+                changed_paths = [p for p in changed_paths if p != baseline_self]
+                if task_values is None:
+                    findings.append(Finding("TASK_CHANGED_FILES_INVALID", args.baseline,
+                                            "cannot check scope without a readable task record"))
+                else:
+                    check_scope(changed_paths, task_values.get("Files/modules allowed", ""), findings)
+    elif args.changed_files:
         changed_paths = load_changed_files(root, args.changed_files, findings)
         if changed_paths is not None:
             if task_values is None:
@@ -522,6 +701,23 @@ def cmd_check(args):
                                         "cannot check scope without a readable task record"))
             else:
                 check_scope(changed_paths, task_values.get("Files/modules allowed", ""), findings)
+    else:
+        if args.legacy_collect:
+            changed_paths = collect_git_changed_files(root, findings)
+            if changed_paths is not None:
+                if task_values is None:
+                    findings.append(Finding("TASK_CHANGED_FILES_INVALID", "changed files",
+                                            "cannot check scope without a readable task record"))
+                else:
+                    check_scope(changed_paths, task_values.get("Files/modules allowed", ""), findings)
+            else:
+                verified.append("Scope check skipped: not a git work tree and no --changed-files supplied.")
+        elif _is_own_git_root(root):
+            findings.append(Finding("TASK_CHANGED_FILES_MISSING", "changed files",
+                                    "governed work unit has no baseline, changed-files list, or "
+                                    "--legacy-collect; scope enforcement cannot be skipped"))
+        else:
+            verified.append("Scope check skipped: not a git work tree and no --changed-files supplied.")
 
     if verified:
         print("VERIFIED:")
@@ -543,6 +739,165 @@ def cmd_check(args):
     return EXIT_OK
 
 
+INTENT_SCHEMA = "ases-intent-decision/1"
+
+PROHIBITED_ACTIONS = (
+    ("commit", re.compile(r"\bcommit\b", re.IGNORECASE), "commit is prohibited by the current task authorization"),
+    ("push", re.compile(r"\bpush\b", re.IGNORECASE), "push is prohibited"),
+    ("force-push", re.compile(r"force[-\s]?push", re.IGNORECASE), "force-push is prohibited"),
+    ("pr-create", re.compile(r"\bpr-create\b", re.IGNORECASE), "pr-create is NOT AUTHORIZED"),
+    ("credential", re.compile(r"\bcredential\b|\bpassphrase\b|\baccess\s+token\b|ghp_[A-Za-z0-9]|github_pat_", re.IGNORECASE),
+     "credential/passphrase/access-token access is prohibited"),
+    ("real-github", re.compile(r"real[-\s]?github|production\s+runtime|production\s+fault", re.IGNORECASE),
+     "real-GitHub/production operations are prohibited"),
+    ("unknown-retry", re.compile(r"retry\b[^\n]{0,40}\bUNKNOWN|UNKNOWN\s+operation", re.IGNORECASE),
+     "UNKNOWN operation retry is prohibited"),
+)
+
+GOVERNANCE_CHANGES = (
+    (re.compile(r"\bCONSTITUTION\b", re.IGNORECASE), "changing the Constitution requires Founder approval"),
+    (re.compile(r"\bAPPROVED_DECISIONS\b", re.IGNORECASE), "changing Approved Decisions requires Founder approval"),
+    (re.compile(r"\bCURRENT_TASK\b", re.IGNORECASE), "changing the task authorization requires Founder approval"),
+    (re.compile(r"\bPROJECT_CONTEXT\b", re.IGNORECASE), "changing the project context requires Founder approval"),
+)
+
+OUT_OF_SCOPE_OBJECTIVES = (
+    (re.compile(r"Universal[-\s]?Orchestrator", re.IGNORECASE), "Universal-Orchestrator is outside the approved Phase 1 scope"),
+    (re.compile(r"\bHarness\b|\bHarness2\b", re.IGNORECASE), "Harness² is outside the approved Phase 1 scope"),
+    (re.compile(r"\bUSHE\b", re.IGNORECASE), "USHE is outside the approved Phase 1 scope"),
+)
+
+PATH_TOKEN = re.compile(r"\b[\w./\\-]+(?:\.(?:py|ps1|md|json|yml|yaml|sh|js|ts|txt|diff|lock))\b")
+
+
+def _task_fields(root, task_rel):
+    try:
+        text = read_text(root, task_rel)
+    except (FileNotFoundError, av.PathProblem, OSError, ValueError):
+        return {}
+    return {name: field_values(text, name)[0] for name in ("Task ID", "Objective", "Files/modules allowed")
+            if field_values(text, name)}
+
+
+def load_approval(root, rel):
+    """Load an explicit Founder approval record (ases-approval/1). Returns (operations, evidence)."""
+    if not rel:
+        return None, ""
+    try:
+        text = read_text(root, rel)
+    except (FileNotFoundError, av.PathProblem, OSError, ValueError):
+        return None, ""
+    try:
+        rec = json.loads(text)
+    except ValueError:
+        return None, ""
+    if not isinstance(rec, dict) or rec.get("schema") != "ases-approval/1":
+        return None, ""
+    ops = rec.get("operations")
+    if not isinstance(ops, list) or not all(isinstance(o, str) for o in ops):
+        return None, ""
+    evidence = rec.get("evidence", "")
+    if not evidence:
+        return None, ""
+    return set(ops), evidence
+
+
+def cmd_intent(args):
+    try:
+        root = av.real_root(args.project_root)
+    except ValueError as exc:
+        print("ERROR (fail closed): %s" % exc, file=sys.stderr)
+        return EXIT_ERROR
+    instruction = (args.instruction or "").strip()
+    if not instruction:
+        print("ERROR (fail closed): empty instruction", file=sys.stderr)
+        return EXIT_ERROR
+    fields = _task_fields(root, args.task)
+    allowed = fields.get("Files/modules allowed", "")
+
+    approved_ops, approval_evidence = load_approval(root, getattr(args, "approval", None))
+
+    decision = "ALLOW"
+    reasons = []
+    for op, pat, reason in PROHIBITED_ACTIONS:
+        if pat.search(instruction):
+            if approved_ops is not None and op in approved_ops:
+                reasons.append("%s (explicit Founder approval: %s)" % (reason, approval_evidence))
+            else:
+                decision = "BLOCK"
+                reasons.append(reason)
+    for pat, reason in GOVERNANCE_CHANGES:
+        if pat.search(instruction):
+            if decision == "ALLOW":
+                decision = "REQUIRE_FOUNDER_APPROVAL"
+            reasons.append(reason)
+    for pat, reason in OUT_OF_SCOPE_OBJECTIVES:
+        if pat.search(instruction):
+            if decision == "ALLOW":
+                decision = "REQUIRE_FOUNDER_APPROVAL"
+            reasons.append(reason)
+
+    patterns = [p.strip().replace("\\", "/") for p in re.split(r"[,;\n]", allowed) if p.strip()]
+    out_of_scope = []
+    for token in sorted(set(PATH_TOKEN.findall(instruction))):
+        path = token.strip().replace("\\", "/").strip("./")
+        if not path or "/" not in path:
+            continue  # bare filename is ambiguous; only full paths are deterministically checked
+        if not patterns or not any(fnmatch.fnmatchcase(path, p) for p in patterns):
+            out_of_scope.append(path)
+    if out_of_scope:
+        if decision == "ALLOW":
+            decision = "BLOCK"
+        reasons.append("out-of-scope path(s): %s" % ", ".join(out_of_scope))
+
+    if (decision == "ALLOW" and not PATH_TOKEN.findall(instruction)
+            and not any(pat.search(instruction) for _, pat, _ in PROHIBITED_ACTIONS)
+            and not any(pat.search(instruction) for pat, _ in GOVERNANCE_CHANGES + OUT_OF_SCOPE_OBJECTIVES)):
+        decision = "REVIEW_REQUIRED"
+        reasons.append("instruction has no classifiable signal; review required")
+
+    record = {
+        "schema": INTENT_SCHEMA,
+        "instruction_source": args.source,
+        "work_unit_id": fields.get("Task ID", ""),
+        "project_objective": fields.get("Objective", ""),
+        "decision": decision,
+        "reasons": reasons,
+    }
+    print(json.dumps(record, indent=2, sort_keys=True))
+    if decision == "ALLOW":
+        return EXIT_OK
+    if decision == "BLOCK":
+        return EXIT_BLOCKED
+    return 2
+
+
+def cmd_baseline(args):
+    try:
+        root = av.real_root(args.project_root)
+    except ValueError as exc:
+        print("ERROR (fail closed): %s" % exc, file=sys.stderr)
+        return EXIT_ERROR
+    try:
+        snapshot = capture_baseline(root, args.work_unit)
+    except OSError as exc:
+        print("ERROR (fail closed): baseline capture failed: %s" % exc, file=sys.stderr)
+        return EXIT_ERROR
+    text = json.dumps(snapshot, indent=2, sort_keys=True) + "\n"
+    if args.output:
+        try:
+            out = av.resolve_inside(root, args.output)
+        except av.PathProblem as exc:
+            print("ERROR (fail closed): %s" % exc, file=sys.stderr)
+            return EXIT_ERROR
+        with open(out, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(text)
+        print("Baseline written to %s (%d files)." % (args.output, len(snapshot["files"])))
+    else:
+        sys.stdout.write(text)
+    return EXIT_OK
+
+
 def build_parser():
     parser = argparse.ArgumentParser(prog="ases_gate.py", description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -553,9 +908,27 @@ def build_parser():
     check.add_argument("--lock", default=DEFAULT_LOCK)
     check.add_argument("--changed-files",
                        help="optional newline-separated changed-file list for scope enforcement")
+    check.add_argument("--baseline",
+                       help="optional project-relative baseline snapshot for per-work-unit delta")
+    check.add_argument("--work-unit",
+                       help="expected work-unit id validated against a supplied baseline")
+    check.add_argument("--legacy-collect", action="store_true",
+                       help="explicitly use the legacy full-tree git collector (non-baseline diagnostic)")
     check.add_argument("--identity",
                        help="optional project-relative JSON task-identity record to validate and hash")
     check.set_defaults(func=cmd_check)
+    base = sub.add_parser("baseline", help="capture a per-work-unit baseline snapshot")
+    base.add_argument("--project-root", default=".")
+    base.add_argument("--work-unit", required=True, help="work-unit identifier")
+    base.add_argument("--output", help="optional output path (default: stdout)")
+    base.set_defaults(func=cmd_baseline)
+    intent = sub.add_parser("intent", help="deterministic intent-integrity & scope decision (IISE)")
+    intent.add_argument("--project-root", default=".")
+    intent.add_argument("--task", default=DEFAULT_TASK)
+    intent.add_argument("--instruction", help="the incoming instruction text to evaluate")
+    intent.add_argument("--source", default="unknown", help="instruction source label (founder/agent/tool-output/repository-doc)")
+    intent.add_argument("--approval", help="optional project-relative Founder approval record (ases-approval/1)")
+    intent.set_defaults(func=cmd_intent)
     return parser
 
 

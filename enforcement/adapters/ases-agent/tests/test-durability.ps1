@@ -1,6 +1,8 @@
 # Controlled durability test: kill runner AFTER intent durable-flush, BEFORE any external effect.
 $ErrorActionPreference = 'Continue'
-$root = Join-Path $env:USERPROFILE '.ases-agent'
+$root = $env:ASES_AGENT_ROOT
+if (-not $root) { Write-Output 'REFUSE: ASES_AGENT_ROOT not set; legacy tests require an isolated test root (never production)'; exit 90 }
+if (-not (Test-Path -LiteralPath (Join-Path $root '.ases-agent-test-root'))) { Write-Output 'REFUSE: isolated test-root sentinel (.ases-agent-test-root) missing'; exit 90 }
 $wrapper = Join-Path $root 'wrapper.ps1'
 $runDir = Join-Path $root 'run'
 $opsDir = Join-Path $root 'state\ops'

@@ -1,6 +1,8 @@
 # F1–F5 verification: endpoint mapping, error classification, exit-code validation, whoami schema.
 $ErrorActionPreference = 'Continue'
-$root = Join-Path $env:USERPROFILE '.ases-agent'
+$root = $env:ASES_AGENT_ROOT
+if (-not $root) { Write-Output 'REFUSE: ASES_AGENT_ROOT not set; legacy tests require an isolated test root (never production)'; exit 90 }
+if (-not (Test-Path -LiteralPath (Join-Path $root '.ases-agent-test-root'))) { Write-Output 'REFUSE: isolated test-root sentinel (.ases-agent-test-root) missing'; exit 90 }
 $runner = Join-Path $root 'runner.ps1'
 $runDir = Join-Path $root 'run'
 

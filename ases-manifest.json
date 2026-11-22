@@ -58,7 +58,7 @@
     },
     {
       "path": "scripts/ases_gate.py",
-      "sha256": "f8388751565e9d0c560a35679a02dad484bd18fbd1194ef265295bd3272295ef"
+      "sha256": "3dae0980c1fe0823755a717c16623a3f78de74e7447156d65595e18e03cc9c43"
     },
     {
       "path": "scripts/ases_identity.py",

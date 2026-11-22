@@ -1,7 +1,9 @@
 # ASES Phase 1 — local protocol verification harness (mock gh, fake PAT, isolated dir).
 # NO real GitHub, NO real token, NO external write.
 $ErrorActionPreference = 'Continue'
-$root = Join-Path $env:USERPROFILE '.ases-agent'
+$root = $env:ASES_AGENT_ROOT
+if (-not $root) { Write-Output 'REFUSE: ASES_AGENT_ROOT not set; legacy tests require an isolated test root (never production)'; exit 90 }
+if (-not (Test-Path -LiteralPath (Join-Path $root '.ases-agent-test-root'))) { Write-Output 'REFUSE: isolated test-root sentinel (.ases-agent-test-root) missing'; exit 90 }
 $wrapper = Join-Path $root 'wrapper.ps1'
 $runner = Join-Path $root 'runner.ps1'
 $runDir = Join-Path $root 'run'
